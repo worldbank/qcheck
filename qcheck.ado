@@ -7,7 +7,7 @@
 *Adapted for datalibweb:		8/1/2016	(Laura Moreno) 
 *New version flexible and easy to updated 2/28/2018 (Laura Moreno)
 *version:		02 
-*Dependencies: 	WORLD BANK - LCSPP
+*Dependencies: 	WORLD BANK - EFI-Poverty and Equity Global Practice 
 *=====================================================================
 #delimit ;
 discard;
