@@ -1,4 +1,5 @@
 /* *===========================================================================
+*===========================================================================
 	_statcheck: Program to check the quality of the in one point of time. 
 	Reference: 
 -------------------------------------------------------------------
@@ -6,11 +7,11 @@
 Version 1 Created:		Check any raw household survey data. Adapted from datacheck_static
 Dependencies: 	WORLD BANK - LCSPP
 
-/*WARNING: Inside this program you may find smaller but not less important programs, created with the idea to simplify and reduce repetitive code. For this reason, some parameters required in all the code are saved in global macros with the SALT prefix. This prefix is used with the intention to not disturbs other programs that could be running in the same stata session. SALT does not have a special meaning. */
+*WARNING: Inside this program you may find smaller but not less important programs, created with the idea to simplify and reduce repetitive code. For this reason, some parameters required in all the code are saved in global macros with the SALT prefix. This prefix is used with the intention to not disturbs other programs that could be running in the same stata session. SALT does not have a special meaning. 
 *===========================================================================*/
 #delimit ;
 discard;
-cap program drop qcheck;
+cap program drop qcheck_static;
 program define qcheck_static, rclass;
 syntax [anything]								///
 		[if] [in], 								///
@@ -18,14 +19,18 @@ syntax [anything]								///
 			COUNTries(string)					///
 			Years(numlist)						///
 			VARiables(string)					///
-				VERMast(string)					///
+				VERMast(string)				///
 				VERAlt(string)					///
+				MODule(passthru)				///
+				SURVEYid(passthru)				///
 				project(string)					///
 				type(passthru)					///	
+				typed(string)					///	
 				survey(passthru)				///
 				logfile							///
 				replace							///
 				path(string)					///
+				mydata(string)					///
 				test(string)					///
 				outfile(string)					///
 				fileserver						///
@@ -39,7 +44,7 @@ qui { ;
 
 ************** A. Create file that save results.;
 	cap postutil clear;
-	postfile resultados str30 country str10 year str30 acronym str10 vermast str10 veralt str30 survey str30 type str30 nature str10 contador str30 module str30 variable str30 warning str10 frequency str10 percentage str244 description str244 iff using check1, replace;
+	postfile resultados str30 country str10 year str30 acronym str10 vermast str10 veralt str30 survey str30 type str30 nature str10 contador str30 module str30 variable str30 warning str10 frequency str244 percentage str244 description str244 iff using check1, replace;
 	
 	************* B. Static Analysis;
 
@@ -89,18 +94,29 @@ qui { ;
 				};
 			
 			*set trace off;
-			cap	datalibweb, country(`country') year(`year')  clear `vermast' `veralt' `type' `project' `survey' `gmodule' `fileserver' `nocpi' `options';
-			*set trace on;
-				if _rc {;  // if _rc;
-					noi disp in red "No data for `country'-`year' ";
-					continue ;
-				};  // close if _rc;
+			*`mydata';
+			noi di "datalibweb, country(`country') year(`year') type(SARMD) clear `vermast' `veralt' `project' `survey' `gmodule' `nocpi' `options'";
+			*datalibweb, country(IND) year(2011) type(SARMD) mod(IND) vermast(01) veralt(04) surveyid(NSS68-SCH1.0-T1)
+			*datalibweb, country(`country') year(`year') type(SARMD) clear vermast(`vermast') veralt(`veralt') `project' surveyid(`survey') `gmodule' `nocpi' `options';
 			
-			cap confirm variable countrycode;
+			if "`country'"=="IND" & "`year'"=="2011"{;
+				datalibweb, country(`country') year(`year') type(SARMD) surveyid(NSS68-SCH1.0-T1) `vermast' `veralt' `gmodule' clear   `fileserver' `nocpi';
+			};
+			else {;
+			datalibweb, country(`country') year(`year') type(SARMD) surveyid(`survey') `vermast' `veralt' `gmodule' clear   `fileserver' `nocpi';
+			};
+			
+			*set trace on;
+			*	if _rc {;  // if _rc;
+			*		noi disp in red "No data for `country'-`year' ";
+			*		continue ;
+			*	};  // close if _rc;
+			
+			/*cap confirm variable countrycode;
 				if (_rc!=0)  {;
-					local gmodule "module(UDB-C)";
-					datalibweb, country(`country') year(`year') `vermast' `veralt' `type' `gmodule' clear   `fileserver' `nocpi';
-				};
+					*local gmodule "module(UDB-C)";
+					*datalibweb, country(`country') year(`year') type(SARMD) surveyid(NSS68-SCH1.0-T1) `vermast' `veralt' `gmodule' clear   `fileserver' `nocpi';
+				};*/
 						
 				* Set globals for data information;
 				global salt_veralt_p = r(vera);

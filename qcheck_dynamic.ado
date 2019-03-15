@@ -35,8 +35,6 @@ syntax [anything]								///
 				VARCtgs(string)					///
 				VARWelfare(string)				///
 				fileserver          			///
-				nocpi							///
-				*								///
 			]
 
 /*-----------------------------------------------------
@@ -81,7 +79,14 @@ foreach country of local countries {
 	noi di "`country' - `year'"
 	* Open data 
 	
-	cap datalibweb, country(`country') year(`year') `vermast' `veralt' `gtype' `gmodule' clear   `fileserver' `nocpi' `options'
+	if "`country'"=="IND" & "`year'"=="2011"{
+	cap datalibweb, country(`country') year(`year') type(SARMD) surveyid(NSS68-SCH1.0-T1) `vermast' `veralt' `gmodule' clear   `fileserver' `nocpi'
+	}
+	else {
+	cap datalibweb, country(`country') year(`year') type(SARMD) `vermast' `veralt' `gmodule' clear   `fileserver'
+	}
+	qui ds
+	local dsvars `r(varlist)'
 	
 		if _rc {  // if _rc
 			noi disp in red "No data for `country'-`year' "
@@ -91,8 +96,8 @@ foreach country of local countries {
 	if (_rc==0)  {
 	cap confirm variable countrycode
 	if (_rc!=0)  {
-		local gmodule "module(UDB-C)"
-		datalibweb, country(`country') year(`year') `vermast' `veralt' `gtype' `gmodule' clear   `fileserver' `nocpi'
+		*local gmodule "module(SARMD)"
+		*datalibweb, country(`country') year(`year') survey(`survey') `vermast' `veralt' `gtype' `gmodule' clear   `fileserver'
 	}
 	* Set locals for data information
 	local veralt_p  = r(vera)
@@ -144,11 +149,14 @@ noi di in red "`noteend`country'`year''"
 
 	
 	*set trace on
-	di 	"`weighttype' `weight'"
+		di 	"`weighttype' `weight'"
 	
 	if (regexm("`cases'", `"^.*basic"')) & ("`variables'"!="") {
 	noi di as text "`country'-`year'-dynamic-basic"
-			basic_dyncheck `variables' [`weighttype'=`weight'],  veralt_p(`veralt_p')	vermast_p(`vermast_p')	project_p(`project_p')	survey(`survey')		year(`year')		acronym(`country')		name(`name')		type(`type')		nature(`nature')		cname(`bc')
+			display "`variables' `weighttype' `weight' `veralt_p' `vermast_p' `survey' `year' `country' `name' `type' `nature' `bc'"
+			local variables2: list variables & dsvars
+			noi di "`variables2'"
+			cap basic_dyncheck `dsvars' [`weighttype'=`weight'],  veralt_p(`veralt_p')	vermast_p(`vermast_p')	project_p(`project_p')	survey(`survey') year(`year') acronym(`country') name(`name')		type("`type'")		nature(`nature')		cname(`bc')
 	}
 	if (regexm("`cases'", `"^.*basic"')) & ("`variables'"=="") {
 		noi di in red "Variable included does not exits in database"
@@ -443,7 +451,7 @@ loc weight "[`weight' `exp']"
 
 
 foreach var of local varlist {
-	if ("`type'"=="GMD") {
+	if ("`type'"=="SARMD") {
 	
 	if (regexm("`var'", `"_ppp$"')) local ppp "_ppp"
 	else local ppp ""
@@ -468,7 +476,8 @@ foreach var of local varlist {
 			cap replace  `var'used = pcinc // income for PHL
 		}
 		
-		gen double `var'_`s'_ppp = `var'used/cpi`s'/icp`s'/365
+		* gen double `var'_`s'_ppp = `var'used/cpi`s'/icp`s'/365
+		gen double `var'_`s'_ppp = `var'used/cpi/ppp/365
 	}
 		
 		* Moderate Poverty

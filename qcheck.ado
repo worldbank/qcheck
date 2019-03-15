@@ -7,7 +7,7 @@
 *Adapted for datalibweb:		8/1/2016	(Laura Moreno) 
 *New version flexible and easy to updated 2/28/2018 (Laura Moreno)
 *version:		02 
-*Dependencies: 	WORLD BANK - EFI-Poverty and Equity Global Practice 
+*Dependencies: 	WORLD BANK - LCSPP
 *=====================================================================
 #delimit ;
 discard;
@@ -17,13 +17,22 @@ syntax [anything]								///
 		[if] [in], 								///
 			[ 									///
 			VARiables(string)					///
-				KEYvar(string)
+				YEARs(string)					///
+				COUNTries(string)				///
+				type(passthru)					///
+				typed(string)					///
+				KEYvar(string)					///
 				CASEs(passthru)				///
-				Weight(passthru)				///				
+				Weight(passthru)				///	
+				MODule(passthru)				///
+				VERMast(passthru)				///
+				VERAlt(passthru)				///
+				SURVEYid(passthru)				///
 				all								///
 				logfile							///
 				replace							///
 				path(string)					///
+				mydata(string)					///
 				TESTfile(string)				///
 				OUTfile(string)					///
 			];
@@ -262,7 +271,7 @@ local cyear=substr("`date'",1,5);
 		};
 		
 ************** 4 Default type;
-if ("`type'" == "") local type "type(GMD)";
+if ("`type'" == "") local type "type(SARMD)";
 	
 				
 ************** 6 log file and  file test;
@@ -327,7 +336,7 @@ if (regexm("`anything'", `"^sta(t|ti|tic)"')) {;
 	
 	noi di "${qc_countries} ${years}";
 	
-	qcheck_static , countries(${qc_countries}) years(${years}) variables(`vari')  `vermast' `veralt' `type' `module'  `replace'  `survey'  path(`path') outfile(${salt_outfile}) `logfile' test(`test') `fileserver' `nocpi';
+	qcheck_static , countries(${qc_countries}) years(${years}) variables(`vari')  `vermast' `veralt' `type' `module'  `replace'  survey(`survey')  path(`path') outfile(${salt_outfile}) `logfile' test(`test') mydata(`mydata') `nocpi';
 	
 };
 *;
