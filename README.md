@@ -1,5 +1,6 @@
 QCHECK: Stata Package for Quality Control of Household Surveys
 ==============================================================
+[![githubrelease](https://img.shields.io/github/release/worldbank/qcheck/all.svg?label=current+release)](https://github.com/worldbank/qcheck/releases)
 
 Introduction
 ------------
