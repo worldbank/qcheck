@@ -1,13 +1,13 @@
-*!v 0.2 <10Mar2018> <Laura Moreno> 
+*!v 0.1 <30Nov2016> <Laura Moreno> <Andres Castaneda>
 *=====================================================================
 *	Qcheck: Program to check the quality of the data
 *	Reference: 
 *-------------------------------------------------------------------
 *Created for datalib/LAC:		15Jul2013	(Santiago Garriga & Andres Castaneda) 
 *Adapted for datalibweb:		8/1/2016	(Laura Moreno) 
-*New version flexible and easy to updated 2/28/2018 (Laura Moreno)
-*version:		02 
-*Dependencies: 	WORLD BANK - EFI-Poverty and Equity Global Practice 
+*Last Modifications: 7Oct2019   Sandra Segovia / Laura Moreno
+*version:		01 
+*Dependencies: 	WORLD BANK - LCSPP
 *=====================================================================
 #delimit ;
 discard;
@@ -16,9 +16,18 @@ program define qcheck, rclass;
 syntax [anything]								///
 		[if] [in], 								///
 			[ 									///
+			COUNTries(string)					///
+			Years(numlist)						///
 			VARiables(string)					///
-				KEYvar(string)
-				CASEs(passthru)				///
+				VERMast(passthru)				///
+				VERAlt(passthru)				///
+				module(passthru)				///
+				project(passthru)				///
+				period(passthru)				///
+				type(passthru)					///	
+				survey(passthru)				///
+				REGion(string)					///
+				CASEs(passthru)					///
 				Weight(passthru)				///				
 				all								///
 				logfile							///
@@ -26,33 +35,52 @@ syntax [anything]								///
 				path(string)					///
 				TESTfile(string)				///
 				OUTfile(string)					///
+				noppp							///
+				bins(numlist)					///
+				SOurce(string)					///
 			];
+
+*---------------------------------;
+*	Save database open         ;
+*---------------------------------;
+if ("`source'"=="") {;
+	local source "datalibweb";
+};
+
+if ("`source'"=="current") {;
+tempfile database2qcheck;
+save `database2qcheck', replace;
+};
 
 *---------------------------------;
 *		Update Static Analysis  test         ;
 *---------------------------------;
-cap which missings
-if _rc ssc install missings
+cap which unique;
+if _rc ssc describe unique;
 
-cap which labelrename
-if _rc net install dm0012, from(http://www.stata-journal.com/software/sj5-2/)
+cap which missings;
+if _rc ssc install missings;
 
-cap which filelist
-if _rc ssc install filelist
+cap which labelrename;
+if _rc net install dm0012, from(http://www.stata-journal.com/software/sj5-2/);
 
-cap which apoverty
-if _rc ssc install apoverty
+cap which filelist;
+if _rc ssc install filelist;
 
-cap which ainequal
-if _rc ssc install ainequal
+cap which apoverty;
+if _rc ssc install apoverty;
+
+cap which ainequal;
+if _rc ssc install ainequal;
+
 
 
 *---------------------------------------------;
 *		Check for errors and defaults - Path and Test file        ;
 *---------------------------------------------;
 
-	quietly findfile qcheck.ado;
-	global salt_adoeditpath=subinstr("`r(fn)'","/qcheck.ado","",.);
+		quietly findfile qcheck.ado;
+		global salt_adoeditpath=subinstr("`r(fn)'","/qcheck.ado","",.);
 
 if (regexm("`anything'", `"^list"')) {;
 	local data: dir "${salt_adoeditpath}" files "testqcheck_*.dta";
@@ -82,11 +110,10 @@ if (regexm("`anything'", `"^list"')) {;
 			noi di  _col(10) as result "results will be saved in the current directory: `path' ";
 		};
 		if ("`path'"=="") {;
-			noi di as error "Define a folder to save results, type path" _request(_path) ;
-				if ("`path'"=="cd") | ("`path'"=="CD") {;
+
 				local path "`c(pwd)'";
 				noi di  _col(10) as result "results will be saved in the current directory: `path' ";
-				};
+
 				glo salt_pathfile "`path'" ;
 				noi di  _col(10) as result "results will be saved in the following directory: `path' ";
 			};
@@ -144,39 +171,33 @@ if ( wordcount("`anything'") > 1 ) {;
 	error;
 };
 * countries and regions codes in upper letters;
-local countries=strupper("`countries'");
-local regions=strupper("`region'"); 
+local countries=strlower("`countries'");
+local regions=strlower("`region'"); 
 glo qc_countries "";
 
 ************** 1. Countries;
 * if local countries are not defined, the program stop and ask for a country/region list. if regions are defined, those are replaced by country list;
 if ("`countries'"=="" ) {;
-	if ("`regions'"=="" ) {; disp in red "you must indicate a country list or region: LAC EAP ECA MNA SAR SSA"; error;
-	};
-	else {;
-		foreach region of local regions {;
-		if (regexm("`region'", `"^.*(LAC|EAP|ECA|MNA|SAR|SSA"'))==0 {;
+	if ("`regions'"=="" ) {; disp in red "you must indicate a country list or region: LAC EAP ECA MNA SAR SSA"; error;};
+	else {;	
+		if (regexm("`regions'", `"^.*lac"'))==0 {;
 		noi di in red "you must indicate a valid regions list"; 		};
-		qui datalibweb_inventory, region(`region');
-		glo qc_countries "${qc_countries}  `r(countrylist)'";
-		};
+		glo qc_countries "arg bol bra chl col cri dom ecu slv gtm hnd mex nic pan pry per ury hti";
+		
 	};
 };
-* if local countris are defined;
+* if local countries are defined;
 else {;
 * save in a global de country list related to a region, if regions are specified;
-	local qc_all "";
-	foreach region in LAC EAP ECA MNA SAR SSA {;
-		qui datalibweb_inventory, region(`region'); local qc_`region' `r(countrylist)'; local qc_all "`qc_all' `qc_`region''";
-		if (regexm("`countries'", `"`region'"')) {;  glo qc_countries "${qc_countries}  `qc_`region''";
-		};
-	};
+	local qc_all "arg bol bra chl col cri dom ecu slv gtm hnd mex nic pan pry per ury hti";
+		glo qc_countries "`countries'";
+	
 * if countries have been included, check country codes. If they match, those are included in the global of country list;
 	foreach country of local countries {;
 		if (regexm("`qc_all'", `"^`country'"')==1 | regexm("${qc_countries}", `"^`country'"')==0)  {;
 			glo qc_countries "${qc_countries}  `country'";
 		};
-		if (regexm("`qc_all'", `"`country'"')==0 & regexm("LAC EAP ECA MNA SAR SSA", `"^`country'"')==0) {;
+		if (regexm("`qc_all'", `"`country'"')==0 & regexm("LAC", `"^`country'"')==0) {;
 			disp in red "country code not found"; error;
 		};
 	};
@@ -190,7 +211,7 @@ else {;
 local date: display %td_CCYY_NN_DD date(c(current_date), "DMY");
 local cyear=substr("`date'",1,5);
 		if ( wordcount("`years'") == 0 ) {;	// Set default option for years: all available from 2000 to today;
-			numlist "1990/`=`cyear'-1'";
+			numlist "2000/`=`cyear'-1'";
 		};
 		else {; numlist "`years'";
 		};
@@ -262,8 +283,8 @@ local cyear=substr("`date'",1,5);
 		};
 		
 ************** 4 Default type;
-if ("`type'" == "") local type "type(GMD)";
-	
+if ("`type'" == "") local type "type(sedlac)";
+*if ("`type'" == "type(lablac)") local period "period(all)";	
 				
 ************** 6 log file and  file test;
 
@@ -310,7 +331,7 @@ if (regexm("`anything'", `"^dy(n|na|nam|nami|namic)"')) {;
 		exit;
 	};
 
-	qcheck_dynamic , countries(${qc_countries}) years(${years}) variables(`varbasi')  `vermast' `veralt' `type' `module' path(`path') outfile("${salt_outfile}") `logfile' `export'  `cases' `display'  `weight' `ppp' `outcome' `index' `replace' varc(`varctgs') varw(`varwelf') `fileserver' `nocpi';
+	qcheck_dynamic , countries(${qc_countries}) years(${years}) variables(`varbasi')  `vermast' `veralt' `period' `project' `module' `type'  path(`path') outfile("${salt_outfile}") `logfile' `cases'  `weight' `replace' varc(`varctgs') varw(`varwelf') `noppp' bins(`bins') source(`source') ;
 };
 
 *---------------------------------;
@@ -326,8 +347,9 @@ if (regexm("`anything'", `"^sta(t|ti|tic)"')) {;
 	};
 	
 	noi di "${qc_countries} ${years}";
+	if ("`source'"=="current") {; use `database2qcheck', clear; };
 	
-	qcheck_static , countries(${qc_countries}) years(${years}) variables(`vari')  `vermast' `veralt' `type' `module'  `replace'  `survey'  path(`path') outfile(${salt_outfile}) `logfile' test(`test') `fileserver' `nocpi';
+	qcheck_static , countries(${qc_countries}) years(${years}) variables(`vari')  `vermast' `veralt' `period' `project' `module' `type'  `replace' path(`path')  `survey'  outfile(${salt_outfile}) `logfile' test(`test') `noppp' source(`source') ;
 	
 };
 *;

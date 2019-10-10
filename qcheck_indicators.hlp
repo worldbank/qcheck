@@ -1,0 +1,173 @@
+{smcl}
+{* 25Jul2013 }{...}
+{cmd:help for indicator analysis of qcheck} {hline 2} (help file in progress)
+{p 40 16 2}{it:{help qcheck:go back to -qcheck-}}{p_end}
+{hline}
+ 
+{* SYNTAX *}
+{title:Syntax}
+
+{p 6 16 2}
+{cmd:qcheck} {it:ind}[{it:icators}] {cmd:,} [	 {it:{help qcheck_indicators##options:Options}}  ] 
+ 
+ 
+{marker sections}{...}
+{title:Sections}
+
+{pstd}
+Sections are presented under the following headings:
+
+		{it:{help qcheck_indicators##desc:Command description}}
+		{it:{help qcheck_indicators##Options2:Options description}}
+		{it:{help qcheck_indicators##Examples:Examples}}
+		{it:{help qcheck_indicators##surveys:Surveys}}
+		
+{marker options}{...}
+{synoptset 27 tabbed}{...}
+{synopthdr:Options}
+{synoptline}
+{syntab:{help qcheck_indicators##basics:Basics}}
+{synopt:{opt count:ries(string)}}{help qcheck_indicators##surveys:Acronym} of the country composed of {it:three} letters. More than one country is allowed. If this option is not specified, the command will 
+be executed for all the available countries.{p_end}
+
+{synopt:{opt years(numlist)}}List of years for which the data is requested. If this option is not specified, the command will be executed for years 2000/2011.{p_end}
+
+{syntab:{help qcheck_indicators##analysis:Analysis}}
+{synopt:{opt case:s(poverty|inequality)}}This option allows selecting the type of analysis to be realized.Only one option allowed per command line. Default is {it:poverty} {p_end}
+
+{synopt:{opt comp:are(project|version)}}This option allows selecting the type of comparison to be realized.Only one option allowed per command line. Default is {it:project} {p_end}
+
+{syntab:{help qcheck_indicators##saving:Saving}}
+{synopt:{opt path(string)}}Path of the directory where the data base will be saved. default "c:/datalib_data". Option save must be provided.{p_end}
+
+{synopt:{opt export}}Export data in the path above.{p_end}
+
+
+
+{marker desc}{...}
+{title:Command description}
+{p 50 20 2}(Go up to {it:{help qcheck_indicators##sections:Sections Menu}}){p_end}
+{pstd}
+{cmd:qcheck} {it:indcheck} calculates poverty or inequality indicators to be compare either regarding different projects of {it:SEDLAC} ("01" or "02") or different {it:SEDLAC} versions ("01", "02", "03" or "04") for a given project (this is valid only for project "02"). 
+{cmd:datalib}, a program developed by the LAC Team for Statistical Development in the Poverty, Gender and Equity group of the World bank, is required to run this command.
+
+
+{marker Options2}{...}
+{title:Options description}
+{p 50 20 2}(Go up to {it:{help qcheck_indicators##sections:Sections Menu}}){p_end}
+{marker basics}{...}
+{dlgtab: Basics}
+
+{phang} {* COUNTRY *}
+{opt countries(["]acronym["])}  Specifies the {help qcheck_indicators##surveys:acronym} of the country, which is composed by {it:three} letters. More than one country is allowed. If this option 
+is not specified, the command will be executed for all 
+available countries.{p_end}
+
+{phang} {* YEAR *}
+{opt years(numlist)} List of years for which the indicators are going to be calculated. If this option is not specified, the command will be executed for years 2000/2011.
+ It's important to have in mind that for some countries the frequency of the households surveys (SEDLAC) is less than annual. {p_end}
+
+{marker analysis}{...} {p 80 20 2}({it:{help qcheck_indicators##options:UP}}){p_end}
+{dlgtab:Analysis}
+{phang} {* CASES *}
+{opt cases(poverty|inequality)} {cmd: indcheck} displays two different kinds of tables depending on the user desires. If {it: poverty} is
+ specified, {cmd: indcheck} displays a table with poverty indicators for national, urban and rural levels, and the relative change regarding option {it: cases}. Poverty indicators presented, consider extreme (2.5 USD per day)
+ and moderate (4 USD per day) international poverty lines.
+ If {it: inequality} is
+ specified, {cmd: indcheck} displays Gini indicators including and not including people with zero income for national, urban and rural levels.
+ As with {it:poverty} specification, the relative change regarding option {it: cases} is also presented for the Gini estimations.{p_end}
+
+{phang} {* COMPARE *}
+{opt compare(project|version)} Since one of the main aspects of this command is to compare poverty and inequality indicators for a given year considering different datasets, this option offers to alternatives of comparison. If {it: project} is
+ specified, {cmd: indcheck} compare indicators among the latest versions available for each project (i.e "01" and "02"). As soon as version "03" is launched, this can also be added to the command.
+If {it: version} is
+ specified, the source of comparison take into account different versions for a given project (this only is available for project "02").
+ Note that the maximum version available is "04" (please double check with {it:command} {cmd: datalib}, option {it:info}). If a new version is settled this should be added into the program ado file. {p_end}
+  {marker saving}{...} {p 80 20 2}({it:{help qcheck_indicators##options:UP}}){p_end}
+{dlgtab:Saving}
+{phang} {* PATH *}
+{opt path(string)} Is the path of the directory where the indicators are going to be exported. Option export must be provided. The default option is the current directory.{p_end}
+
+{phang} {* EXPORT *}
+{opt export} Export indicators in the path indicated above or in default path. This option generate an excel file named "{it:data_check.xlsx}" with a sheet called "{it:Indicator raw}".{p_end}
+
+
+{marker Examples}{...}
+{title:Examples}{p 50 20 2}(Go up to {it:{help qcheck_indicators##sections:Sections Menu}}){p_end}
+{pstd}
+
+{p 2 4}The examples below use the lighter data bases like Paraguay or Panama, but the user can change to any 
+convenient country as long as the data exists.{p_end}
+
+{dlgtab: Poverty indicators, by project}
+
+{p 8 12}{stata "qcheck indicators, count(pry) years(2006/2009) cases(poverty)" :.qcheck indicators, count(pry) years(2006/2009) cases(poverty) }{p_end}
+
+{pstd} Calculate extreme and moderate poverty using SEDLAC dataset for years 2006/2009 in Paraguay. The estimations consider different levels of aggregation: national, rural and urban. The third and sixth column of the table showed the relative change in poverty comparing datasets of project "01" and "02". Note that since {it:compare} option wasn't specified, the comparison is between projects (default).
+
+{dlgtab: Inequality indicators, by project}
+
+{p 8 12}{stata "qcheck indicators, count(pan) years(2000/2009) cases(inequality)" :.qcheck indicators, count(pan) years(2000/2009) cases(inequality) }{p_end}
+
+{pstd} Calculate gini indicators considering and not considering people with zero income, using SEDLAC datasets for years 2000/2009 in Panama. The estimations take into account different levels of aggregation: national, rural and urban. The third and sixth column of the table showed the relative change in poverty comparing datasets of project "01" and "02". Note that since {it:compare} option wasn't specified, the comparison is between projects (default).
+
+{dlgtab: Poverty indicators, by version}
+
+{p 8 12}{stata "qcheck indicators, countr(pry) compare(version)" :.qcheck indicators, countr(pry) compare(version)}{p_end}
+
+{pstd} Calculate extreme and moderate poverty for Paraguay. Since option years wasn't specified, the command consider years 2000/2011 (default option) when available. The estimations consider different levels of aggregation: national, rural and urban. The third and sixth column of the table showed the relative change in poverty comparing datasets of version "02" and "03" of project "02". Note that since {it:compare} option wasn't specified, the comparison is between projects (default).
+
+
+ {marker surveys}{...}
+{title:Surveys}
+{p 50 20 2}(Go up to {it:{help qcheck_indicators##sections:Sections Menu}}){p_end}
+
+{synoptset 27 tabbed}{...}
+{it: Latin American countries}
+{synoptline}
+{synopt:{opt Argentina }}arg{p_end}
+ {synopt:{opt Bolivia }}bol{p_end}
+ {synopt:{opt Brazil }}bra{p_end}
+ {synopt:{opt Chile }}chl{p_end}
+ {synopt:{opt Colombia }}col{p_end}
+ {synopt:{opt Costa Rica }}cri{p_end}
+ {synopt:{opt Dominican Republic }}dom{p_end}
+  {synopt:{opt Ecuador }}ecu{p_end}
+ {synopt:{opt El Salvador }}slv{p_end}
+ {synopt:{opt Guatemala }}gtm{p_end}
+ {synopt:{opt Honduras }}hnd{p_end}
+ {synopt:{opt Mexico }}mex{p_end}
+ {synopt:{opt Nicaragua }}nic{p_end}
+ {synopt:{opt Panama }}pan{p_end}
+ {synopt:{opt Paraguay }}pry{p_end}
+ {synopt:{opt Peru }}per{p_end}
+ {synopt:{opt Uruguay }}ury{p_end}
+ {synopt:{opt Venezuela }}ven{p_end}
+  
+ {it: Caribean Countries}
+ {synoptline}
+ {synopt:{opt Bahamas }}bhs{p_end}
+ {synopt:{opt Belice }}blz{p_end}
+ {synopt:{opt Guyana }}guy{p_end}
+ {synopt:{opt Haiti }}hti{p_end}
+ {synopt:{opt Jamaica }}jam{p_end}
+ {synopt:{opt Suriname }}sur{p_end}
+
+  
+ {title:Thanks for citing {cmd:SEDLAC databases} as follows}
+
+{p 4 4 2}"Source: World Bank and CEDLAS, Socio-Economic Database for Latin America and the Caribbean".{browse "http://sedlac.econo.unlp.edu.ar/eng/"}{p_end}
+ 
+ {title:Acknowledgements}
+    {p 4 4 2}This program was developed by the {browse "http://go.worldbank.org/IYDYF1BG70" : LAC Team for Statistical Development}, in the 
+    Latin American and Caribbean Poverty Reduction and Economic Management Group of the World Bank.{p_end} 
+    {p 4 4 2}Comments and suggestions are most welcome.{p_end} 
+	
+{title:Authors}
+    {p 4 4 2}Andres Castañeda and Santiago Garriga.{p_end}
+
+{title:Also see other Stata program from the LAC Team from Statistical Development}
+
+{psee}
+ {helpb datalib} (if installed)
+{p_end}

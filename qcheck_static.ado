@@ -1,4 +1,7 @@
 /* *===========================================================================
+	
+Last Modifications: 7-Oct2019   Sandra Segovia / Laura Moreno
+	
 	_statcheck: Program to check the quality of the in one point of time. 
 	Reference: 
 -------------------------------------------------------------------
@@ -20,7 +23,9 @@ syntax [anything]								///
 			VARiables(string)					///
 				VERMast(string)					///
 				VERAlt(string)					///
-				project(string)					///
+				module(passthru)				///
+				project(passthru)				///
+				period(string)				    ///
 				type(passthru)					///	
 				survey(passthru)				///
 				logfile							///
@@ -28,29 +33,63 @@ syntax [anything]								///
 				path(string)					///
 				test(string)					///
 				outfile(string)					///
-				fileserver						///
-				nocpi 							///
-				*								///
+				noppp							///
+				SOurce(string)					///
 			];
-*open qui overall code;
-qui { ;	
 
+qui {;	// open qui overall code;
+
+	if ("`source'"=="current") {;
+	tempfile database2qcheck;
+	save `database2qcheck', replace;
+	};
+	
+	
 	preserve; //  Keep original data	;
+
+/*-----------------------------------------------------
+		A. Create file that save results
+-----------------------------------------------------*/
 
 ************** A. Create file that save results.;
 	cap postutil clear;
-	postfile resultados str30 country str10 year str30 acronym str10 vermast str10 veralt str30 survey str30 type str30 nature str10 contador str30 module str30 variable str30 warning str10 frequency str10 percentage str244 description str244 iff using check1, replace;
+	postfile resultados str30 country str10 year str30 acronym str10 vermast str10 veralt str30 survey str30 type str30 nature str10 project str10 period str10 contador str30 module str30 variable str30 warning str10 frequency str10 size double percentage str244 description str244 iff str30 data_year using check1, replace;
 	
-	************* B. Static Analysis;
+/*-----------------------------------------------------
+		B. Static Analysis
+-----------------------------------------------------*/
 
-	qui{;  // Begin static Analysis;
+	qui{;  // begin static analysis;
 	local messageend "";
+	local gmodule `module';
+	local gtype "`type'";
+	local gsurvey "`survey'";
+	local gproject "`project'";
 	************* B2. Loops;
 			foreach country of local countries {;  //loop country;
 
+			if ("`period'"!="") {;
+			local gperiod `period';
+			local periodloop "foreach periodo of local gperiod";
+			};
+			else {;
+				if ("`country'"=="arg") {;
+					local gperiod s1 s2;
+					local periodloop "foreach periodo of local gperiod";
+				};
+				else {;
+					local gperiod "";
+					local periodloop "qui";
+				};
+			};
+				
+			
 			* Set years;
 			foreach year in `years' {;  // loop year;
-			*set trace on;
+			
+			`periodloop' { ;
+				noi di "`country' - `year' `periodo'";
+		
 			* call excel conditions ;
 				foreach var of local variables {;
 				
@@ -87,43 +126,87 @@ qui { ;
 					local test_varname`variable' = test_varname[`variable'] ;
 					local label`variable'=label[`variable'];
 				};
+
+		
+			if ("`source'"=="current") {;
+			use `database2qcheck', clear;
+			};
 			
-			*set trace off;
-			cap	datalibweb, country(`country') year(`year')  clear `vermast' `veralt' `type' `project' `survey' `gmodule' `fileserver' `nocpi' `options';
-			*set trace on;
-				if _rc {;  // if _rc;
-					noi disp in red "No data for `country'-`year' ";
-					continue ;
-				};  // close if _rc;
-			
-			cap confirm variable countrycode;
-				if (_rc!=0)  {;
-					local gmodule "module(UDB-C)";
-					datalibweb, country(`country') year(`year') `vermast' `veralt' `type' `gmodule' clear   `fileserver' `nocpi';
+	
+			if ("`source'"=="datalibweb") {;
+				if ("`periodo'"!="") local theperiod "period(`periodo')";
+				if ("`type'"=="type(sedlac)") local mod "mod(all)";
+			cap datalibweb, country(`country') year(`year') `theperiod' `type' `mod' clear ;
+			};
+	
+	
+	
+			if ("`source'"=="datalib") {;
+				if ("`periodo'"!="") local theperiod "period(`periodo')";
+				if ("`type'"=="type(sedlac)") local mod "mod(all)";
+			cap datalib, country(`country') year(`year') `theperiod' `type' `mod' clear ;
+		
+
+			if _rc!=0 {; 
+				noi di _rc;
+				noi di "check datalib syntax: datalib, country(`country') year(`year') `theperiod' `type'";
+				exit; 
 				};
-						
-				* Set globals for data information;
+			
+			};
+
+			cap drop __*;
+
+******************* Set globals for data information;
+				
+			if ("`source'"=="datalib") {;	
+				global salt_veralt_p = r(veralt);
+				global salt_vermast_p = r(vermast);
+				global salt_survey 	= r(survname);
+				global salt_acronym = "`country'";
+				global salt_name= r(country);
+				global salt_countryname = r(country);
+				global salt_test 	= "`country'" ;
+				global salt_type 	= r(type);
+				global salt_nature 	= r(nature);
+				global salt_year	="`year'";
+				global salt_period = r(period);
+				global salt_project = r(project);
+				des;
+				global salt_total = r(N) ;
+			};
+					
+
+				if ("`source'"=="datalibweb") {;	
 				global salt_veralt_p = r(vera);
 				global salt_vermast_p = r(verm);
-				global salt_survey 	= r(surveyid);
+				global salt_survey 	= r(survname);
 				global salt_acronym = "`country'";
-				global salt_test 	=  "`country'" ;
+				global salt_name= r(country);
+				global salt_countryname = r(country);
+				global salt_test 	= "`country'" ;
 				global salt_type 	= r(type);
-				global salt_nature 	= r(module);
+				global salt_nature 	= r(nature);
 				global salt_year	="`year'";
-			
-				count if countrycode!="";
-				return list;
+				global salt_period = r(period);
+				global salt_project = r(project);
+				des;
 				global salt_total = r(N) ;
-			
+			};
+					
+
+	
 	qui{;
 				foreach variable of numlist 1/`nlvar' {;
 					cap retest `raw_varname`variable'' `test_varname`variable'';
 					cap la var `test_varname`variable'' "`label`variable''";
 				};
 	};
-	************* C1. Save tests data in locals;
 	
+	
+	************* C1. Save tests data in locals;
+
+
 			foreach var of local variables {;
 					foreach check of numlist 1/`n`var'' {;
 					local addnote=0;
@@ -135,25 +218,24 @@ qui { ;
 								local temporal`var'`check' = substr(`"`temporal`var'`check''"', `puntoycoma'+1,.);
 								local puntoycoma=strpos(`"`temporal`var'`check''"',";");
 								
-								cap `linea';
+								`linea';
 								
 								if _rc!=0 {; local addnote=1; };
-								};
+								}; // end while;
 
 				cap `temporal`var'`check'' ;
 				if _rc!=0 {; local addnote=1; };
-							} ;
-							* end while punto y coma;			
+							} ; // end if;	
 					
-					if (`addnote'==1) {;local messageend "(*)Incorrect specification for `var' in this test: `description`var'`check'' `messageend'"; };
+					if (`addnote'==1) {;local messageend "(*)Incorrect test for `var' `messageend'"; };
 					
 					if ("`description`var'`check''"=="") {;
 					noi di as text "There are not test for `var'. Please, check your test file";
 					local messageend_no`var' "(*) There are not test for `var'. Please, check your test file.";
-					};
+					}; // end if
 					
 					else {;
-		** set trace on ;	
+
 					
 					noi log_statement `var', iff(`iff`var'`check'') ///
 						description("`description`var'`check''") 	///
@@ -161,67 +243,77 @@ qui { ;
 						warning("`warning`var'`check''")			///
 						frequency("`frequency`var'`check''");			
 					
-		** set trace off;		
 
-				};
-			};  //  end of variable loops;
+
+				}; // end else
 				
-					};
-			} ;
+					};  //  end of check of numlist;
+				
+			}; // end variables loop
 			
-		
-			*End of Years loop;
-	} ;
-	* end of Countries loop;		
-} ;
-* End static Analysis;
+		} ; // End loop period
+			
+	} ;  // End of Years loop;
+} ; // end of Countries loop;		
 
-	* Close log file;
+} ; //End static Analysis;
 
+
+/*	
+* Close log file;
 if ("`logfile'" != "") {;
 	log close "`logfile'";
 	noi disp as text `"note: results saved to `log'/`outfile'"';
 	noi disp `"{ stata `"winexec "C:\Windows\system32\notepad.exe" "`outfile'/`salt_filetest'"': click here}"' _c ;
 	noi disp  as text " to open with NotePad";
 };  // end logfile options;
+*/
 
-*set trace on ;
+
 	postclose resultados; //  Close post resultados;
 
 	qui use check1.dta, clear;
 
 	count if warning!="";
+	*noi di `r(N)';
 	if r(N)>0 {;
-		duplicates drop variable warning description year country, force;
+		duplicates drop variable warning description year country period project veralt vermast, force;
 		egen n_error=seq();
 		destring contador, replace;
-		duplicates tag description variable warning , generate(code);
+		duplicates tag description variable warning  , generate(code);
 		egen n=group(description variable warning);
 		cap save "${salt_pathfile}/${salt_outfile}.dta", `replace';
 		if _rc==0 {;
 		qui export excel "${salt_pathfile}/${salt_outfile}.xlsx", sheetreplace firstrow(variables) sheet("check_results");
 		noi di as txt "Click" as smcl `"{browse `""${salt_pathfile}/${salt_outfile}.xlsx""': here }"' `"to open results in excel "${salt_pathfile}/${salt_outfile}.xlsx" "';
 		};
-		
-	};
+*set trace off;	
+
+	}; // end if warning;
 	else {;
 		di in red "Caution: No flags for your selection";
 		di as text "country(ies): `countries'";
 		di as text "year(s): `years'";
 		di as text "variable(s): `variables'";
 	};
-*set trace off ;
-	*set trace on;
-	di in red "`messageend'" ;
-	foreach var of local variables {;
-	if ("`messend_`var''"!="") {; di in red "`messend_`var''"; };
-	if ("`messageend_no`var''"!="") {; di in red "`messageend_no`var''"; };
-	};
+	
 restore;
+}; // close qui overall code;
 
-} ;  // end qui overall code;
+end;  // end of program;
 
-end;  // end of program _statcheck. ;
+***************************************************************************************************
+	
+/*	
+
+	di in red "`messageend'" ;
+	
+*	foreach var of local variables {;
+*	if ("`messend_`var''"!="") {; di in red "`messend_`var''"; };
+*	if ("`messageend_no`var''"!="") {; di in red "`messageend_no`var''"; };
+*	};
+*/
+
 
 ***************************Program to check logical statements ***********************************;
 
@@ -231,8 +323,8 @@ program define log_statement, rclass;
 		[if] [in], 								///
 			description(string)					///
 			iff(string)							///
-			module(string)						///
-			[ 									///
+			[									///
+			module(string)						/// 									
 			warning(string)						///
 			frequency(string)					///
 			add(string)							///
@@ -247,13 +339,17 @@ program define log_statement, rclass;
 		cap confirm variable `anything';
 		if _rc!=0 {;											// var doesn't exist;
 			if regexm("`anything'", `"("${previous}")"') {;		// first check of this var, save post
-				local description "Variable does not found. It should be missing";
+				local description "Variable not found. It should be defined as missing";
 				local frequency "${salt_total}";
 				local warning "Missed";
 				local savepost "yes";
 			};
 			else {;
-				local savepost "no";		// do nothing;
+				local description "Variable defined";
+				local frequency "${salt_total}";
+				local warning "Defined";
+				local savepost "yes";
+				local savepost "yes";		// do nothing;
 			};
 		};
 	*2. Is not the variable missing?;
@@ -292,10 +388,10 @@ program define log_statement, rclass;
 				};  // end stuff when condition lookfor number of obs with inconsistency;
 		* The condition holds or not holds whitin a all the observation. These checks use tempvars;
 				else {;
-				cap count if (`iff');
-				if _rc!=0 {;
-					local messend_`var' "(*) Incorrect specification for `var' in this test: `description`var'`check''"; 
-				};
+				count if (`iff');
+				*if _rc!=0 {;
+				*	local messend_`var' "(*) Incorrect specification for `var' in this test: `description`var'`check''"; 
+				*};
 					qui count if (`iff');
 					if r(N)>0 {;
 						if ("`frequency'"==""){;
@@ -326,7 +422,7 @@ program define log_statement, rclass;
 		* Updated counter;
 			global salt_doncontador=${salt_doncontador}+1;
 		* Save results;
-			post resultados  ("${salt_test}") ("${salt_year}") ("${salt_acronym}") ("${salt_vermast_p}") ("${salt_veralt_p}") ("${salt_survey}") ("${salt_type}") ("${salt_nature}") ("${salt_doncontador}") ("`module'") ("`anything'") ("`warning'") ("`frequency'") ("`percentage'") ("`description'") ("`iff'");
+			post resultados  ("${salt_test}") ("${salt_year}") ("${salt_acronym}") ("${salt_vermast_p}") ("${salt_veralt_p}") ("${salt_survey}") ("${salt_type}") ("${salt_nature}")  ("${salt_project}") ("${salt_period}") ("${salt_doncontador}") ("`module'") ("`anything'") ("`warning'") ("`frequency'") ("${salt_total}") (`percentage') ("`description'") ("`iff'") ("01/01/${salt_year}");
 			
 		* Create a brouse;
 		

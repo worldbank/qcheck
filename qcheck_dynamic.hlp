@@ -1,0 +1,351 @@
+{smcl}
+{* 01Feb2012 }{...}
+{cmd:help for dynamic analysis of qcheck} {hline 2} (help file in progress)
+{p 40 16 2}{it:{help qcheck:go back to -qcheck-}}{p_end}
+{hline}
+ 
+{* SYNTAX *}
+{title:Syntax}
+
+{p 6 16 2}
+{cmd:qcheck} {it:dyna}[{it:mic}] {cmd:,} [	 {it:{help qcheck_dynamic##options:Options}}  ] 
+ 
+
+{marker sections}{...}
+{title:sections}
+
+{pstd}
+Sections are presented under the following headings:
+
+		{it:{help qcheck_dynamic##desc:Command description}}
+		{it:{help qcheck_dynamic##Options2:Options description}}
+		{it:{help qcheck_dynamic##Examples:Examples}}
+		{it:{help qcheck_dynamic##vars:Sedlac Variables}}
+
+
+
+{marker options}{...}
+{synoptset 27 tabbed}{...}
+{synopthdr:options}
+{synoptline}
+{syntab:{help qcheck_dynamic##basics:Basics}}
+{synopt:{opt co:untry(string)}}{help qcheck_dynamic##surveys:Acronym} of the countries composed of {it:three} letters. More than one country allowed{p_end}
+
+{synopt:{opt years(numlist)}}Number list of years for which the data is requested{p_end}
+
+{synopt:{opt type(string)}}Type of data base request. sedlac, cedlas or base for household surveys.{p_end}
+
+{syntab:{help qcheck_dynamic##analysis:Analysis}}
+{synopt:{opt var:iables(string)}}Select variables to analyse. may not be combined with 'modules'. Restrictions might apply {help qcheck_dynamic##variables:(go)}{p_end}
+
+{synopt:{opt mod:ules(string)}}Set of variables to analyse already pre-defined. may not be combined with 'variables'. Restrictions might apply {help qcheck_dynamic##variables:(go)}{p_end}
+
+{synopt:{opt case:s(string)}}Select indicator or {it:case} to analyse over time. {help qcheck_dynamic##Cases:click here} to know type of cases
+{help qcheck_dynamic##variables:(go)}{p_end}
+
+{synopt:{opt w:eight(varname)}}Specify sample weights of the survey. in the case of SEDLAC 'pondera' is the weights variable
+
+{syntab:{help qcheck_dynamic##export:Export and display}}
+{synopt:{opt export}}Export results to excel{p_end}
+
+{synopt:{opt path}}directory for saved results. default current directory{p_end}
+
+{synopt:{opt [no]display}}Default. [no]display suppress output. Not recommended{p_end}
+
+{syntab:{help qcheck_dynamic##advanced:Advanced}}
+{synopt:{opt pro:ject}}SEDLAC project to analyse. Default project 02{p_end}
+
+{synopt:{opt verm:ast}}Master version {p_end}
+
+{synopt:{opt vera:lt}}Allows the user to specify the version of the alternative data{p_end}
+
+{synopt:{opt inc:ppp(string)}}list of income variables to generate into ppp. default is {it:ipcf ila} and {it:inla}{p_end}
+
+{synopt:{opt [no]cohh}} Default.[no]cohh loads the the entire data set including non-coherent observations {p_end}
+
+
+{marker desc}{...}
+{title:Description}
+{p 50 20 2}(Go up to {it:{help qcheck_dynamic##sections:Sections Menu}}){p_end}
+{pstd}
+{cmd:qcheck} {it:dynamic}  calculates indicators over time for one or more variables of the SEDLAC variables set in order to identify 
+strong changes in the series and patterns variations for and specific country. For example, {cmd:qcheck} {it:dynamic} calculates de proportion
+of zero or missing values on income variables over time, or the sample mean in ppp terms for each income variable desired. 
+
+
+{marker Options2}{...}
+{title:Options description}
+{p 50 20 2}(Go up to {it:{help qcheck_dynamic##sections:Sections Menu}}){p_end}
+{marker basics}{...}
+{dlgtab: basics}
+
+{phang} {* COUNTRY *}
+{opt coun:tries(["]acronym["])}  Specifies the {help qcheck_dynamic##surveys:acronym} of the country. 
+This is composed by {it:three} letters. {cmd: qcheck} {it:dynamic} allows more than one country at a time. 
+
+{phang} {* YEAR *}
+{opt years(numlist)}  is a list of years for which only one type of survey and country are requested. By default the years period
+is 2000-2011 {p_end}
+
+{marker analysis}{...} {p 80 20 2}({it:{help qcheck_dynamic##options:UP}}){p_end}
+{dlgtab:Analysis}
+
+{phang} 
+{opt var:iables(string)} Select variables to analyse. may not be combined with 'modules'. Restrictions might apply {help qcheck_dynamic##variables:(go)}{p_end}
+
+{phang} 
+{opt mod:ules(string)}Set of variables to analyse already pre-defined. may not be combined with 'variables'. Restrictions might apply {help qcheck_dynamic##variables:(go)}{p_end}
+
+{marker Cases}{...}
+{phang} 
+{opt case:s(basic|poverty|inequality|distribution)} Refers to the type of analysis that the user wants to perform.
+ {cmd:qcheck} implements 
+zzzzz type of dynamic analysis which are divided depending of the needs of the user:{p_end}
+
+{p 10 12 2}{bf:basic}: For specified variable, {it:basic} calculates the proportion of zeros and missing values of the
+ sample; the sample mean of the variable along with it's standard deviation. {err: Caution: If you analysis categorical variables or income variables in current prices the mean and the sd might not make sense} {p_end}
+
+{p 10 12 2}{bf:poverty}: For specified variable, {it:poverty} calculates poverty rates for $2.5usd and $4usd a day. 
+{it:More estimations will be added to the poverty analysis} {err: Caution: If you analysis categorical variables or income variables in current prices the mean and the sd might not make sense} {p_end}
+
+{p 10 12 2}{bf:inequality}: For specified variable, {it:inequality} calculates basic inequality measures such as Gini and
+ Theil index. However, if the user specifies the option {it:all} {cmd:qcheck} will calculate a bunch of common
+ inequality measures. {err: Caution: make sure your are using weights to estimate inequality measures} {p_end} 
+ {p 10 12 2}{bf:distribution}: For specified income variable, {it:distribution} shows the threshold value for the
+ percentiles 1, 5, 10, 25, 50, 75, 90, 95 and 99. {err: Caution: make sure your are using weights to estimate inequality measures} {p_end} 
+
+{marker export}{...} {p 80 20 2}({it:{help qcheck_dynamic##options:UP}}){p_end}
+{dlgtab:Export and display}
+
+{phang} 
+{opt export} use if you want to export the displayed results into an Excel file. The results will be exported in long format
+so pivot tables or Tableau dashboard are easily constructed.{p_end}
+
+{phang} 
+{opt path(string)} is the path of the directory where the results will be saved. If the path begging with the letter of an internal or network
+ drive {cmd:qcheck} {it:dynamic} will export the results in the designed path, For example "Z:\Temporal". If the path begging with the name of
+ a folder under the current directory, {cmd:qcheck} {it:dynamic} will export the results to that folder. {p_end}
+
+{phang} 
+{opt [no]display} By default {cmd:qcheck} {it:dynamic} will display the calculations requested. [no]display suppresses the outcome.{p_end}
+
+{marker cpi}{...} {p 80 20 2}({it:{help qcheck_dynamic##options:UP}}){p_end}
+{dlgtab:CPI and PPP convertion}
+
+{phang} {* INCPPP *}
+{opt incppp(string)} allows the user to create a list of income variables that are desired to be converted to ppp values. By default {cmd:qcheck} converts to ppp the household income per-capita (ipcf), non-labor income (inla) and labor income (ila). {p_end}
+
+{marker advanced}{...} {p 80 20 2}({it:{help qcheck_dynamic##options:UP}}){p_end}
+{dlgtab:Advanced}
+
+{phang} {* PROject Version *}
+{opt project(string)} The {it: SEDLAC project} is the methodology used by {it: CEDLAS} to harmonized all the data
+ sets. This implies that the for a specific project number all the SEDLAC data sets are comparable. In other words,
+ the user {cmd: cannot} compare Paraguay 2009 project 02 with Brazil 2009 project 01. Both surveys must be in the same
+ project number. By default {cmd; qcheck} gets the last {it: SELDAC project} available. The version has to be entered
+ as a two digits number (e.g. 01 , 02, …, etc). {p_end}
+
+{phang} {* MASTERVERSION *}
+{opt vermast(string)} the user can specify the version of the {it:master} data requested if needed. The version has to be entered as a two digits number (e.g. 01 , 02, …, etc). Default is 01.{p_end}
+
+{phang} {* ALTERNATIVEVERSION *}
+{opt veralt(string)} the user can specify the version of the {it:alternative} or {it:sedlac} data requested if needed. The version has to be entered as a two digits number (e.g. 01 , 02, …, etc) Default is 01.{p_end}
+
+
+{hline}
+{marker Examples}{...}
+{title:Examples}{p 40 20 2}(Go up to {it:{help qcheck_dynamic##sections:Sections Menu}}){p_end}
+{pstd}
+
+{p 2 4}The examples below use the lighter data bases like Paraguay or Panama, but the user can change to any 
+convenient country as long as the data exists.{p_end}
+
+{dlgtab: basic use}
+
+{p 8 12}{stata "qcheck dynamic, countries(pry pan) years(2005/2009) var(ila ipcf)" :.qcheck dyn, countries(pry pan) years(2005/2009) var(ila ipcf )}{p_end}
+
+{pstd} Dynamic analysis for Paraguay and Panama between 2005 and 2009 for labour income and household income 
+per-capita. Given that the 'cases' option was not specified  {cmd:qcheck} {it:dynamic} will perform the {it:basic} analysis. No weights are used in this example
+
+{dlgtab: cases}
+
+{p 8 12}{stata "qcheck dyn , countries(pry) years(2007/2009) var(ipcf_ppp) cases(poverty distribution) weight(pondera)" :. qcheck dyn, countries(pry pan) years(2007/2009) var(ipcf_ppp) cases(poverty distribution) weight(pondera)} {p_end}
+
+{pstd} Poverty and inequality Dynamic analysis for Paraguay between 2007 and 2009 for household income per-capita on ppp 2005 prices.
+
+{dlgtab: modules}
+
+{p 8 12}{stata "qcheck dyn , countries(pry pan) years(2007/2009) modules(income) cases(inequal) w(pondera)" :. qcheck dyn, countries(pry pan) years(2007/2009) modules(income) cases(inequal) w(pondera)}{p_end}
+
+{pstd} Analysis of distribution for Paraguay and Panama between 2007 and 2009 for all income variables of the module 'income'.
+
+{marker export}{...}
+{dlgtab: export and path}
+
+{p 8 12}{stata "qcheck dyn, countries(pry) years(2005/2009) variables(ipcf_ppp) export path(Z:\Temporal)" :.qcheck dyn, countries(pry) years(2005/2009) variables(ipcf_ppp) export path(Z:\Temporal)}{p_end}
+
+{pstd} If the path begging with the letter of an internal or network drive {cmd:qcheck} {it:dynamic} will export the results in the designed path, in this case: "Z:\Temporal". If the path begging with the name of a folder under the current directory, {cmd:qcheck} {it:dynamic} will export the results to that folder. 
+
+{hline}
+
+{marker vars}{...} 
+{title:Sedlac Variables}
+{pstd}
+{it:NOTE:} Most of the variables below are in each of the Sedlac data bases but depending on the country and the year
+ some of the variables might be missing. For now the description is in Spanish as it is presented in the labels of the variables.  
+ The modules of variables are divided as follows: {help qcheck_dynamic##surveyvar:Survey}, {help qcheck_dynamic##demographicvar:Demographics}, 
+ {help qcheck_dynamic##regionvar:Regional}, {help qcheck_dynamic##infrastructurevar:Infrastructure}, {help qcheck_dynamic##durablevar:Durable goods and services}, 
+ {help qcheck_dynamic##educationvar:Education}, {help qcheck_dynamic##laborvar:Labor}, {help qcheck_dynamic##incomevar:Income} and 
+ {help qcheck_dynamic##povertyvar:Poverty line and CPI}
+
+
+{p 40 20 2}(Go up to {it:{help qcheck_dynamic##sections:Sections Menu}}){p_end}
+
+{synoptset 27 tabbed}{...}
+{synopthdr: Name of the variable}
+{synoptline}
+
+{marker surveyvar}{...} 
+{p 6 4 2}{hline 6} Survey Variables {hline 6}{p_end}
+{synopt:{opt pais}}pais{p_end}
+{synopt:{opt ano}}año{p_end}
+{synopt:{opt encuesta}}Original survey acronym{p_end}
+{synopt:{opt tipo}}type of SEDLAC harmonization: SEDLAC, CELDAS or BASE{p_end}
+{synopt:{opt pondera}}Factor de ponderación{p_end}
+{synopt:{opt pondera_i}}Ponderador para variables de ingreso{p_end}
+{synopt:{opt cohh}}Indicador de respuesta de ingresos: =1 si respuesta del hogar coherente{p_end}
+
+{marker demographicvar}{...} 
+{p 6 4 2}{hline 6} Demographic Variables {hline 6}{p_end}
+{synopt:{opt id}}Identificación única del hogar{p_end}
+{synopt:{opt com}}Identificación del componente{p_end}
+{synopt:{opt relacion}}relacion   Relación de parentesco con el jefe de hogar{p_end}
+{synopt:{opt hogar}}Indicador de hogar{p_end}
+{synopt:{opt hogarsec}}hogarsec   Miembro de un hogar secundario{p_end}
+{synopt:{opt edad}}Edad{p_end}
+{synopt:{opt miembros}}Número de miembros del hogar principal{p_end}
+{synopt:{opt hombre}}hombre == 1{p_end}
+{synopt:{opt jefe}}Dummy de jefe de hogar{p_end}
+{synopt:{opt conyuge}}conyuge    Dummy de cónyuge del jefe de hogar{p_end}
+{synopt:{opt hijo}}Dummy de hijo del jefe de hogar{p_end}
+{synopt:{opt casado}}casado     Dummy de estado civil: casado o unido{p_end}
+{synopt:{opt raza}}Raza{p_end}
+
+{marker regionvar}{...} 
+{p 6 4 2}{hline 6} Regional Variables {hline 6}{p_end}
+{synopt:{opt region}}Región geográfica{p_end}
+{synopt:{opt urbano}}Dummy de area de residencia{p_end}
+{synopt:{opt migrante}}Condición migratoria{p_end}
+
+{marker infrastructurevar}{...} 
+{p 6 4 2}{hline 6} Infrastructure Variables {hline 6}{p_end}
+{synopt:{opt propieta}}propieta   Es propietario de la vivienda que habita?{p_end}
+{synopt:{opt habita}}Número de habitaciones de uso exclusivo del hogar{p_end}
+{synopt:{opt precaria}}precaria   Vivienda ubicada en lugar precario{p_end}
+{synopt:{opt matpreca}}matpreca   Son los materiales de construcción de la vivienda precarios?{p_end}
+{synopt:{opt agua}}Tiene instalación de agua en la vivienda?{p_end}
+{synopt:{opt banio}}Tiene baño higiénico en la vivienda?{p_end}
+{synopt:{opt cloacas}}Tiene baño conectado a cloacas?{p_end}
+{synopt:{opt elect}}Tiene electricidad en la vivienda?{p_end}
+
+{marker durablevar}{...} 
+{p 6 4 2}{hline 6} Durable goods and services Variables {hline 6}{p_end}
+{synopt:{opt heladera}}Tiene heladera en la vivienda?{p_end}
+{synopt:{opt lavarropas}}Tiene lavarropas en la vivienda?{p_end}
+{synopt:{opt aire}}Tiene aire acondicionado en la vivienda?{p_end}
+{synopt:{opt calefaccion_}}~a	Tiene calefacción fija en la vivienda?{p_end}
+{synopt:{opt telefono}}Tiene teléfono en la vivienda?{p_end}
+{synopt:{opt telefono_fijo}}Tiene teléfono fijo en la vivienda?{p_end}
+{synopt:{opt celular}}Tiene teléfono celular al menos un miembro del hogar?{p_end}
+{synopt:{opt televisor}}Tiene televisor en la vivienda?{p_end}
+{synopt:{opt tv_cable}}Tiene TV por cable o satelital en la vivienda?{p_end}
+{synopt:{opt video}}Tiene VCR o DVD en la vivienda?{p_end}
+{synopt:{opt computadora}}Tiene computadora en la vivienda?{p_end}
+{synopt:{opt internet_casa}}Tiene conexión de internet en la vivienda?{p_end}
+{synopt:{opt auto}}Tiene automóvil el hogar?{p_end}
+{synopt:{opt moto}}Tiene motocicleta el hogar?{p_end}
+{synopt:{opt bici}}Tiene bicicleta el hogar?{p_end}
+
+{marker educationvar}{...} 
+{p 6 4 2}{hline 6} Education Variables {hline 6}{p_end}
+{synopt:{opt alfabeto}}Dummy de alfabetización{p_end}
+{synopt:{opt asiste}}Dummy de asistencia al sistema educativo{p_end}
+{synopt:{opt edu_pub}}Dummy de tipo de establecimiento al que asiste{p_end}
+{synopt:{opt aedu}}Años de educación aprobados{p_end}
+{synopt:{opt nivel}}Máximo nivel educativo alcanzado{p_end}
+
+{marker laborvar}{...} 
+{p 6 4 2}{hline 6} Labor Variables {hline 6}{p_end}
+{synopt:{opt pea}}Dummy de condición de actividad: económicamente activo{p_end}
+{synopt:{opt ocupado}}Dummy de condición de actividad: ocupado{p_end}
+{synopt:{opt desocupa}}Dummy de condición de actividad: desocupado{p_end}
+{synopt:{opt durades}}Duración del desempleo en meses{p_end}
+{synopt:{opt deseo_emp}}Desea conseguir otro empleo o trabajar más horas?{p_end}
+{synopt:{opt hstrt}}Horas trabajadas en todas las ocupaciones{p_end}
+{synopt:{opt hstrp}}Horas trabajadas en la ocupación principal{p_end}
+{synopt:{opt antigue}}Antiguedad en la ocupación principal{p_end}
+{synopt:{opt relab}}Relación laboral en la ocupación principal{p_end}
+{synopt:{opt empresa}}Tipo de empresa en la que trabaja{p_end}
+{synopt:{opt categ_lab}}Categoría laboral - Informalidad Productiva{p_end}
+{synopt:{opt sector1d}}Sector de actividad a 1 digito CIIU{p_end}
+{synopt:{opt contrato}}Tiene contrato laboral firmado?{p_end}
+{synopt:{opt djubila}}Tiene derecho a jubilación en su empleo?{p_end}
+{synopt:{opt ocuperma}}Es su ocupación permanente o temporaria?{p_end}
+{synopt:{opt dsegsale}}Tiene derecho a seguro de salud en su empleo?{p_end}
+{synopt:{opt daguinaldo}}Tiene derecho a recibir aguinaldo en su empleo?{p_end}
+{synopt:{opt dvacaciones}}Tiene derecho a vacaciones pagas en su empleo?{p_end}
+
+{marker incomevar}{...} 
+{p 6 4 2}{hline 6} Income Variables {hline 6}{p_end}
+{synopt:{opt ip}} Ingreso en la ocupación principal{p_end}
+{synopt:{opt ila}} Ingreso laboral total{p_end}
+{synopt:{opt wage}} Ingreso horario en la ocupación principal{p_end}
+{synopt:{opt iasal}} Ingreso por trabajo como asalariado{p_end}
+{synopt:{opt ictap}} Ingreso por trabajo como cuentapropista{p_end}
+{synopt:{opt ipatr}} Ingreso por trabajo como patrón{p_end}
+{synopt:{opt iol}} Otros ingresos laborales{p_end}
+{synopt:{opt cohi}} =1 si coherente - individual{p_end}
+{synopt:{opt inla}} Ingreso no laboral total{p_end}
+{synopt:{opt ijubi}} Ingreso por jubilaciones y pensiones{p_end}
+{synopt:{opt icap}} Ingreso del capital{p_end}
+{synopt:{opt itran}} Ingreso por transferencia{p_end}
+{synopt:{opt itrane}} Ingreso por transferencias estatales{p_end}
+{synopt:{opt ionl}} Otros ingresos no laborales{p_end}
+{synopt:{opt ii}} Ingreso individual total{p_end}
+{synopt:{opt renta_imp}} Renta imputada de la vivienda propia{p_end}
+{synopt:{opt itf}} Ingreso total familiar{p_end}
+{synopt:{opt ipcf}} Ingreso per cápita familiar{p_end}
+
+{marker povertyvar}{...} 
+{p 6 4 2}{hline 6} Poverty line and CPI Variables {hline 6}{p_end}
+{synopt:{opt lp_1usd}}Línea de pobreza de USD1 diarios{p_end}
+{synopt:{opt lp_2usd}}Línea de pobreza de USD2 diarios{p_end}
+{synopt:{opt lp_4usd}}Línea de pobreza de USD4 diarios{p_end}
+{synopt:{opt ipc_sedlac}}CPI for the reference period{p_end}
+{synopt:{opt ipc05_sedlac}}CPI on 2005{p_end}
+{synopt:{opt ppp05}}PPP converter factor{p_end}
+
+
+ {title:Thanks for citing {cmd:SEDLAC databases} as follows}
+
+{p 8 12 2}"Source: World Bank and CEDLAS, Socio-Economic Database for Latin America and the Caribbean".{browse "http://sedlac.econo.unlp.edu.ar/eng/"}{p_end}
+ 
+ {title:Acknowledgements}
+
+    {p 4 4 2}This program was developed by the {browse "http://go.worldbank.org/IYDYF1BG70" : LAC Team for Statistical Development}, in the 
+    Latin American and Caribbean Poverty Reduction and Economic Managment Group of the World Bank.{p_end} 
+    {p 4 4 2}Comments and suggesitons are most welcome.{p_end} 
+	
+{title:Authors}
+
+    {p 4 4 2}Andres Castañeda and Santiago Garriga.{p_end}
+
+{title:Also see other Stata program from the LAC Team from Statistical Development}
+
+{psee}
+ {helpb datalib} (if installed)
+{p_end}
+
+
+
+
