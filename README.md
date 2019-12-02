@@ -83,4 +83,21 @@ See the example below to understand how to fill correctly the Excel.
 ### 4. Load check into Qcheck
 Before using qcheck in Stata you need to ‘load’ the checks into the system. To do so, you have to specify the function ‘create’ in the qcheck command in Stata. Depending on where you saved the Excel file “qcheck_NNN.xlsx”, you need to specify the directory path as indicated in the image below. You need to do this procedure for each “qcheck_NNN.xlsx” input file you have. 
 
+### 5. Example
+
+#### 0. Load test
+qcheck load, path(<<where is the excel with test here>>) test(qcheck_<<test name>>) replace
+qcheck load, path(<<where is the excel with test here>>) test(qcheck_gmd) replace
+ 
+#### A. GMD datalibweb
+qcheck static, countries(ZAF) year(2014) path(<<where to save the results here>>) test(gmd) var(educy)  replace out(THIS_IS_A_TEST)  type(gmd) source(datalibweb)
+ 
+#### B. Out of datalibweb
+use "mydata.dta", clear
+qcheck , countries(SSS) year(2014) path(<<where to save the results here>>) test(gmd) var(male)  replace out(THIS_IS_A_TEST)  type(gmd) source(current)
+ 
+datalibweb, country(ZAF) year(2014)  type(gmd)  clear
+qcheck , countries(ZAF) year(2014) path(<<where to save the results here>>) test(gmd) var(male)  replace out(THIS_IS_A_TEST)  type(gmd) source(current) 
+
+
 <img src="./images/qcheck_load.png">
