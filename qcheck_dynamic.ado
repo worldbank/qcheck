@@ -48,6 +48,7 @@ noi {
 	if ("`source'"=="current") {
 	tempfile database2qcheck
 	save `database2qcheck', replace
+    
 	}
 
 
@@ -105,8 +106,10 @@ foreach country of local countries {
 			if ("`source'"=="datalibweb") {
 				if ("`periodo'"!="") local theperiod "period(`periodo')"
 				if ("`type'"=="type(sedlac)") local mod "mod(all)"
+                if ("`type'"=="type(sedlac-03)") local mod "mod(all)"
 			cap datalibweb, country(`country') year(`year') `theperiod' `type' `mod' clear 
-			la lang cedlas	
+			
+			if ("`type'"=="type(sedlac-03)") la lang cedlas	
 			}	
 			
 			if ("`source'"=="datalib") {

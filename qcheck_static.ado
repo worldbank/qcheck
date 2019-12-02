@@ -136,6 +136,9 @@ qui {;	// open qui overall code;
 			if ("`source'"=="datalibweb") {;
 				if ("`periodo'"!="") local theperiod "period(`periodo')";
 				if ("`type'"=="type(sedlac)") local mod "mod(all)";
+                if ("`type'"=="type(sedlac-03)") local mod "mod(all)";
+                noi di "datalibweb, country(`country') year(`year') `theperiod' `type' `mod' clear";
+                
 			cap datalibweb, country(`country') year(`year') `theperiod' `type' `mod' clear ;
 			};
 	
@@ -195,6 +198,22 @@ qui {;	// open qui overall code;
 			};
 					
 
+				if ("`source'"=="current") {;	
+				global salt_veralt_p = .;
+				global salt_vermast_p = .;
+				global salt_survey 	= .;
+				global salt_acronym = "`country'";
+				global salt_name= .;
+				global salt_countryname = .;
+				global salt_test 	= "`country'" ;
+				global salt_type 	= .;
+				global salt_nature 	= .;
+				global salt_year	="`year'";
+				global salt_period = .;
+				global salt_project = .;
+				des;
+				global salt_total = . ;
+			};
 	
 	qui{;
 				foreach variable of numlist 1/`nlvar' {;

@@ -27,7 +27,7 @@ syntax [anything]								///
 				type(passthru)					///	
 				survey(passthru)				///
 				REGion(string)					///
-				CASEs(passthru)					///
+				CASEs(passthru)				///
 				Weight(passthru)				///				
 				all								///
 				logfile							///
@@ -50,6 +50,7 @@ if ("`source'"=="") {;
 if ("`source'"=="current") {;
 tempfile database2qcheck;
 save `database2qcheck', replace;
+
 };
 
 *---------------------------------;
@@ -171,33 +172,42 @@ if ( wordcount("`anything'") > 1 ) {;
 	error;
 };
 * countries and regions codes in upper letters;
-local countries=strlower("`countries'");
-local regions=strlower("`region'"); 
+local countries=upper("`countries'");
+local regions=upper("`region'"); 
 glo qc_countries "";
 
+
 ************** 1. Countries;
+
 * if local countries are not defined, the program stop and ask for a country/region list. if regions are defined, those are replaced by country list;
 if ("`countries'"=="" ) {;
-	if ("`regions'"=="" ) {; disp in red "you must indicate a country list or region: LAC EAP ECA MNA SAR SSA"; error;};
-	else {;	
-		if (regexm("`regions'", `"^.*lac"'))==0 {;
+	if ("`regions'"=="" ) {; disp in red "you must indicate a country list or region: LAC EAP ECA MNA SAR SSA"; error;
+	};
+	else {;
+		foreach region of local regions {;
+		if (regexm("`region'", `"^.*(LAC|EAP|ECA|MNA|SAR|SSA"'))==0 {;
 		noi di in red "you must indicate a valid regions list"; 		};
-		glo qc_countries "arg bol bra chl col cri dom ecu slv gtm hnd mex nic pan pry per ury hti";
-		
+		qui datalibweb_inventory, region(`region');
+		glo qc_countries "${qc_countries}  `r(countrylist)'";
+		};
 	};
 };
-* if local countries are defined;
+* if local countris are defined;
 else {;
+if ("`source'"!="current") {;
 * save in a global de country list related to a region, if regions are specified;
-	local qc_all "arg bol bra chl col cri dom ecu slv gtm hnd mex nic pan pry per ury hti";
-		glo qc_countries "`countries'";
-	
+	local qc_all "";
+	foreach region in LAC EAP ECA MNA SAR SSA {;
+		qui datalibweb_inventory, region(`region'); local qc_`region' `r(countrylist)'; local qc_all "`qc_all' `qc_`region''";
+		if (regexm("`countries'", `"`region'"')) {;  glo qc_countries "${qc_countries}  `qc_`region''";
+		};
+	};
 * if countries have been included, check country codes. If they match, those are included in the global of country list;
 	foreach country of local countries {;
 		if (regexm("`qc_all'", `"^`country'"')==1 | regexm("${qc_countries}", `"^`country'"')==0)  {;
 			glo qc_countries "${qc_countries}  `country'";
 		};
-		if (regexm("`qc_all'", `"`country'"')==0 & regexm("LAC", `"^`country'"')==0) {;
+		if (regexm("`qc_all'", `"`country'"')==0 & regexm("LAC EAP ECA MNA SAR SSA", `"^`country'"')==0) {;
 			disp in red "country code not found"; error;
 		};
 	};
@@ -205,6 +215,11 @@ else {;
 	if ("`countries'"=="all" ) {;
 		glo qc_countries "`qc_all'";
 	};
+};
+
+else {;
+	glo qc_countries "`countries'";
+};
 };
 
 ************** 2 Years to analyze and default;
@@ -330,7 +345,8 @@ if (regexm("`anything'", `"^dy(n|na|nam|nami|namic)"')) {;
 		noi di in text "	(!) The output file already exists. Use option replace or define a different name";
 		exit;
 	};
-
+	noi di "${qc_countries} ${years}";
+	if ("`source'"=="current") {; use `database2qcheck', clear; };
 	qcheck_dynamic , countries(${qc_countries}) years(${years}) variables(`varbasi')  `vermast' `veralt' `period' `project' `module' `type'  path(`path') outfile("${salt_outfile}") `logfile' `cases'  `weight' `replace' varc(`varctgs') varw(`varwelf') `noppp' bins(`bins') source(`source') ;
 };
 
