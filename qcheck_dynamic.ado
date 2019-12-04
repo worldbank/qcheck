@@ -4,8 +4,8 @@
 -------------------------------------------------------------------
 Created datalib/lac: 		15Jul2013	(Santiago Garriga & Andres Castaneda) 
 Adapted datalibweb:			01Aug2016 	Laura Moreno Herrera
-				20Nov2013	(Santiago Garriga & Andres Castaneda) 
-Last Modifications: 7Oct2019   Sandra Segovia / Laura Moreno
+							20Nov2013	(Santiago Garriga & Andres Castaneda) 
+Adapted for review:			06Oct2017	(Jayne Jungsun Yoo)
 version:		01 
 Dependencies: 	WORLD BANK - LCSPP
 *===========================================================================*/
@@ -23,9 +23,7 @@ syntax [anything]								///
 			VARiables(string)					///
 				VERMast(passthru)				///
 				VERAlt(passthru)				///
-				module(passthru)				///
-				project(passthru)				///
-				period(passthru)				///				
+				module(string)					///
 				type(passthru)					///	
 				survey(passthru)				///
 				logfile							///
@@ -36,48 +34,39 @@ syntax [anything]								///
 				Weight(string)					///
 				VARCtgs(string)					///
 				VARWelfare(string)				///
-				noppp							///
-				bins(numlist)					///
-				SOurce(string)					///
+				Sources(numlist)				///
+				Format(string)					///
+				fileserver          			///
 			]
 
 /*-----------------------------------------------------
 		0. Check for errors and defaults
 -----------------------------------------------------*/
-noi { 
-	if ("`source'"=="current") {
-	tempfile database2qcheck
-	save `database2qcheck', replace
-    
-	}
-
-
 qui {
 local gtype "`type'"
-local gsurvey "`survey'"
-local gperiod "`period'"
-local gproject "`project'"
-if ("`bins'"=="") local bins=1
+local gmodule "`module'"
 * programs
 cap which distinct 
 if (_rc > 0 ) ssc install distinct
 * file to save categorical analysis
 clear all
-tempfile ctgdta
-save `ctgdta', replace emptyok
+
+
+	tempfile ctgdta basiccheck povcheck catcheck
+	save `ctgdta' , replace emptyok
+
 * file with information
-*tempfile to save others check
+*tempfile to save othres check
 tempname bc
-postfile `bc' str10 veralt str10 vermast str10 project str10 period str30 survey str30 year str30 acronym str30 country str30 type str30 nature str30 variable str244 description str30 module str30 analysis str30 case double value bin using basiccheck, replace
-
-*postfile `bc' str30 country str10 year str30 acronym str10 vermast str10 veralt str30 survey str30 type str30 nature str10 project str10 period str10 contador str30 module str30 variable str30 warning str10 frequency str10 size double percentage str244 description str244 iff str30 data_year using basiccheck, replace;
-
-
+postfile `bc' str10 source str10 veralt str10 vermast str10 project str30 survey str30 year str30 acronym str30 country str30 type str30 nature str30 variable str244 description str30 module str30 analysis str30 case double value  using "`basiccheck'", replace        
 
 tempname pic
-postfile `pic' str10 veralt str10 vermast str10 project  str10 period str30 survey str30 year str30 acronym str30 country str30 type str30 nature str30 variable str244 description str30 module str30 analysis str30 case double value bin using povcheck, replace
+postfile `pic' str10 source str10 veralt str10 vermast str10 project str30 survey str30 year str30 acronym str30 country str30 type str30 nature str30 variable str244 description str30 module str30 analysis str30 case double value  using "`povcheck'", replace			
 
-
+tempname cat
+postfile `cat' str10 source str10 acronym str10 year str30 veralt str30 survey str30 vermast str30 type str30 module str30 case str30 variable str30 valuelabel double value  using "`catcheck'", replace			
+	
+*qui dis as error "`sources'"
 
 /*-----------------------------------------------------
 		1. Dynamic Analysis
@@ -87,644 +76,946 @@ glo saveresultspov=0
 glo saveresultsinq=0
 glo saveresultscat=0
 
-foreach country of local countries {
+
+foreach source of local sources {
+
+	/*if (`source'==.)	{				
+		qui disp in red "No source assigned"
+			continue 
+		}  // close if _rc
+	*/
+	if (`source'==2)	{			
 	
-	* Set years
-	foreach year of local years { 
-	noi di "`country' - `year'"
-	* Open data 
-*noi di "country(`country') year(`year')  `vermast' `veralt' `gperiod' `gproject' `gtype' `gsurvey'  `noppp'  lang(es) clear"
-	*local gmod
-	*if ("`gtype'"=="type(lablac)") local gmod "" `module'
-	*************************************************
-	
-			if ("`source'"=="current") {
-				use `database2qcheck', clear
+		local data1: dir "${openpath}" files "*.dta"		
+		*di `data1'
+		
+			foreach country of local countries    {
+			* Set years
+			foreach year of local years    { 
+			* Set module
+				foreach mmm in "${module}"    { 		
+					foreach il of local data1    {	
+						loc i=upper("`il'")
+						if (ustrregexm("`i'","`country'")==1)     {
+							if (ustrregexm("`i'","`year'")==1)    {
+								if (ustrregexm("`i'",upper("`mmm'.dta"))==1)    {
+												* Set locals for data information
+												noi dis in yellow "`country' - `year' - `mmm' - source(`source')"
+												*di in red "yes"
+												local str "`i'"
+												*di in yellow "`str'"
+												tokenize `str', parse("_")
+												local vermast_p = lower("`7'")
+												local veralt_p  = lower("`11'")
+												*di in yellow  "`veralt_p'"  
+												local survey    = "`5'"
+												*di in yellow "`survey'"
+												local acronym   = "`1'"
+												*di in yellow "`acronym'"
+												local type      = "`15'"
+												*di in yellow  "`type'"
+												local id=subinstr("`i'","`country'_`year'_`5'_`vermast_p'_M_`veralt_p'","",.)
+												local id=subinstr("`id'",".dta","",.)	
+												* Open data 			
+												qui use "${openpath}/`country'_`year'_`5'_`vermast_p'_M_`veralt_p'_A_`15'_`mmm'.dta", clear
+
+		
+		* create welfare
+			* create welfare
+			foreach m in "`module'" {
+			if "`m'"=="3"	{
+				capture confirm variable welfare
+				if !_rc {
+				   qui di in red "welfare exists"
+				}
+				else {
+					clonevar welfare=gallT 
+				}
+			}
+			}
+		//check if weight exists
+		cap confirm var `weight'
+		if _rc!=0 {
+			noi di as txt "`country' - `year' - `mmm' - source(`source'): variable weight not found"
+			exit
+			}
+		* weight defined
+		if ("`weight'" == "") {
+			local weight 1	
+			 di as error "Results are unweighted"
+		}
+			*weighttype
+			cap confirm variable weighttype
+			if _rc==0 {
+				levelsof weighttype , local(weighttype)
+				local weighttype=strlower(weighttype)
+				cap tab countrycode [`weighttype'=`weight']
+				if _rc!=0 {
+		*local noteend`country'`year' "Variable -weighttype- not match with weight type for `country' `year' `veralt_p' `vermast_p'. Analitycal weight is assumed "
+		qui di in red "`noteend`country'`year''"
+					local weighttype "aw"
+				}
+			}
+			else {
+				*qui dis in red "Variable -weighttype- not found for `country' `year' `veralt_p' `vermast_p'. Analitycal weight is assumed "
+				gen weighttype="aw"
+				local weighttype "aw"
 				
+				*local noteend`country'`year' "Variable -weighttype- not found for `country' `year' `veralt_p' `vermast_p'. Analitycal weight is assumed "
 			}
 			
-			if ("`source'"=="datalibweb") {
-				if ("`periodo'"!="") local theperiod "period(`periodo')"
-				if ("`type'"=="type(sedlac)") local mod "mod(all)"
-                if ("`type'"=="type(sedlac-03)") local mod "mod(all)"
-			cap datalibweb, country(`country') year(`year') `theperiod' `type' `mod' clear 
-			
-			if ("`type'"=="type(sedlac-03)") la lang cedlas	
-			}	
-			
-			if ("`source'"=="datalib") {
-				if ("`periodo'"!="") local theperiod "period(`periodo')"
-				if ("`type'"=="type(sedlac)") local mod "mod(all)"
-			cap datalib, country(`country') year(`year') `theperiod' `type' clear `mod'
-			la lang cedlas	
-			}
-	
-	
-	*************************************************
-			if _rc!=0 {  // if _rc
-			
-				noi disp in red "No data for `country'-`year' "
-				continue 
-			}  // close if _rc
-	
-	if (_rc==0)  {
-	* Set locals for data information
-
-		if ("`source'"=="datalib") {
-			local veralt_p  = r(veralt)
-			local vermast_p =  r(vermast)
-			local survey    = r(survname)
-			local acronym   = "`country'"
-			local name 	  =  r(country) 
-			local countryname 	  =  r(country) 
-			local type      = r(type)
-			local module    = r(nature)
-			local year	  = "`year'"
-			local period_p = r(period)
-			local project_p = r(project)
-		}
-		
-		
-		if ("`source'"=="datalibweb") {
-			local veralt_p  = r(vera)
-			local vermast_p =  r(verm)
-			local survey    = r(survname)
-			local acronym   = "`country'"
-			local name 	  =  r(country) 
-			local countryname 	  =  r(country) 
-			local type      = r(type)
-			local module    = r(nature)
-			local year	  = "`year'"
-			local period_p = r(period)
-			local project_p = r(project)
-		}
-	
-* weight defined
-if ("`weight'" == "") {
-	local weight 1	
-	noi di as error "Results are unweighted"
-}
-
-	* country information
-	qui {
-	dis as text "{hline}" 
-	dis as text "{p 4 4 2}{cmd:Country:} "   in y  "`country'    " as text " {p_end}"
-	dis as text "{p 4 4 2}{cmd:Year:} "      in y  "`year'   " as text " {p_end}"
-	dis as text "{p 4 4 2}{cmd:Module:} "    in y  "`module' " as text " {p_end}"
-	dis as text "{p 4 4 2}{cmd:Type:} "      in y  "`type'   " as text " {p_end}"
-	dis as text "{p 4 4 2}{cmd:Survey ID:} " in y  "`survey'" as text " {p_end}"
-	dis as text "{hline}" _newline
-	} // end of noise
-
-	local listvar ""
-foreach var of local variables {
-	cap confirm variable `var'
-	if _rc==0 {
-		local listvar "`var' `listvar'"
-	}
-}
-local variables `listvar'
-
-* bins
-
-gen bins=`bins'
-if (`bins'!=1) {
-	_ebin ipcf [aw=`weight'], gen(xx) nq(`bins')
-	replace bins=xx
-	drop xx
-}
+			* country information
+			qui {
+			dis as text "{hline}" 
+			dis as text "{p 4 4 2}{cmd:Country:} "   in y  "`country'    " as text " {p_end}"
+			dis as text "{p 4 4 2}{cmd:Year:} "      in y  "`year'   " as text " {p_end}"
+			dis as text "{p 4 4 2}{cmd:Module:} "    in y  "`module' " as text " {p_end}"
+			dis as text "{p 4 4 2}{cmd:Type:} "      in y  "`type'   " as text " {p_end}"
+			dis as text "{p 4 4 2}{cmd:Survey ID:} " in y  "`survey'" as text " {p_end}"
+			dis as text "{hline}" _newline
+			} // end of quise
 
 	
-*Analysis per variable 		
+		*Analysis per variable 		
 /*------------------------ basic Analysis----------------------------------*/
 
 	
-
+	*set trace on
 	di 	"`weighttype' `weight'"
-
-foreach nq of numlist 1/`bins' {	
-	if (regexm("`cases'", `"^.*basic"')) & ("`variables'"!="") {
-	noi di as text "`country'-`year'-dynamic-basic"
-			basic_dyncheck `variables' [aw=`weight'],  veralt_p(`veralt_p')	vermast_p(`vermast_p')	project_p(`project_p') period_p(`period_p')	survey(`survey') year(`year') acronym(`country') name(`name') type(`type') nature(`nature') cname(`bc') nq(`nq')
-	}
-}
-	if (regexm("`cases'", `"^.*basic"')) & ("`variables'"=="") {
-		noi di in red "Variable included does not exits in database"
-		exit
-	}
-
 	
-	if regexm("`variables'","ipcf") {
-*------------------------Poverty Analysis --------------------------*
-		if (regexm("`cases'", `"^.*pov(e|er|ert|erty)"')) {
-		noi di as text "`country'-`year'-dynamic-poverty"
-		local varwelfare "ipcf_ppp11"
-			poverty_dyncheck `varwelfare' [aw=`weight'],  veralt_p(`veralt_p')	vermast_p(`vermast_p')	project_p(`project_p') period_p(`period_p')	survey(`survey') year(`year') acronym(`acronym') name(`countryname' ) type(`type') nature(`nature') cname(`pic') `all'
+	if (regexm("`cases'", `"^.*basic"'))  {
+	*qui di as text "`country'-`year'-dynamic-basic"
+	foreach var in `variables' {
+
+	cap confirm variable `var'	
+				
+		if _rc!=0 {										// var doesn't exist;
+		di in yellow "`var' does not exist"
+		gen `var'=.
 		}
-
-*------------------------inequality Analysis -----------------------*
-
-	if (regexm("`cases'", `"^.*ineq(u|ua|ual|uali|ualit|uality)"')) {
-		noi di as text "`country'-`year'-dynamic-inequality"
-			ineq_dyncheck `varwelfare' [aw=`weight'],  veralt_p(`veralt_p')	vermast_p(`vermast_p')	project_p(`project_p') period_p(`period_p')	survey(`survey') year(`year') acronym(`acronym') name(`countryname' ) type(`type') nature(`nature') cname(`pic') `all'
-		}		
 	}
-		
-
-
-foreach nq of numlist 1/`bins' {
-
-	if (regexm("`cases'", `"^.*categorical"')) {
-/*------------------------ procedure for categorical variables if any -------------------------*/
-	* gather categorical variables
-	noi di as text "`country'-`year'-dynamic-categorical"
-	tempfile database 
-	save `database', replace
+	if (regexm("`cases'", `"^.*basic"'))&("`variables'"!="") {
 	
-	* calculate proportion share in each categorical variable
-	if (`: word count `varctgs'' > 0  & `: word count `varctgs'' < .) {
-
-		tempname P F A V Y B
-		cap mat drop `P'
-
-		local vc = 0 			// variable counter
-		foreach varctg of local varctgs {
-
-		*if regexm("`variables'","`varctg'") {
-		cap gen `varctg'=""
-
-		//  CHeck whether the variable is missing in all obs
-		tempvar missvar
-		missings tag `varctg', gen(`missvar')
-		count
-		local n = r(N)
-		count if `missvar'
-		local mn = r(N)
-		local diffm = `mn'-`n'
-		
-		if (`diffm' == 0) {
-			cap confirm numeric variable `varctg'
-			if (_rc == 0) replace `varctg'=-999
-			else  replace `varctg'="NA"
-		}  
+	#delimit ;
+			basic_dyncheck `variables' [`weighttype'=`weight'],  source("`source'") veralt_p("`veralt_p'")	vermast_p("`vermast_p'")	project_p("`project_p'")	survey("`survey'")		year("`year'")	 module("`module'")		acronym("`country'")		name("`name'")		type("`type'")		nature("`nature'")		cname("`bc'") ;
+			
+	#delimit cr
+	}
+	}
 
 	
-		********************************************************************************	
+	*if regexm("`variables'","welfare") {
 
-		// generate auxiliary variable with proper labels
-		tempvar varctgaux
-		cap confirm numeric variable `varctg'
-		if _rc != 0 {
-			rename  `varctg' `varctgaux' 
-			encode `varctgaux', generate(`varctg') label(`varctg')
+		/*------------------------Poverty Analysis --------------------------*/
+				if (regexm("`cases'", `"^.*pov(e|er|ert|erty)"')) {
+					#delimit ;  
+					di as text "`country'-`year'-dynamic-poverty" ;   
+					#delimit cr	
+					poverty_dyncheck `variables' [`weighttype'=`weight'], source(`source') veralt_p(`veralt_p')	vermast_p(`vermast_p')	project_p(`project_p')	survey(`survey')		year(`year')		acronym(`acronym')		name(`countryname' )		type(`type')	 module("`mmm'")		nature(`nature')		cname(`pic') `all'
+				}
+		/*------------------------inequality Analysis -----------------------*/
+				if (regexm("`cases'", `"^.*ineq(u|ua|ual|uali|ualit|uality)"')) {
+					#delimit ;  
+					 di as text "`country'-`year'-`mmm'-dynamic-inequality" ;   
+					#delimit cr	
+					ineq_dyncheck `variables' [`weighttype'=`weight'], source(`source') veralt_p(`veralt_p') vermast_p(`vermast_p')	project_p(`project_p')	survey(`survey') year(`year')  module("`module'")	acronym(`acronym')	name(`countryname' ) type(`type') nature(`nature') cname(`pic') `all'
+				}		
+			
+			if (regexm("`cases'", `"^.*categorical"')) {
+
+		/*------------------------ procedure for categorical variables if any -------------------------*/
+
+		* gather categorical variables
+				foreach varctg of local varctgs {
+
+					cap confirm variable `varctg'
+
+		if _rc==0  {
+			qui su `varctg'
+			if r(N)>0 {
+				loc _check: val l `varctg'
+					if `"`_check'"' == "" {
+						di as error `"Variable `varctg' does not have val labels assigned"'
+						local lab =0
+						}
+					if `"`_check'"' != "" {
+						local lab =1
+						}
+				levelsof `varctg', local(levels)
+				local lbe : value label `varctg'
+	
+			qui {
+				foreach l of local levels {
+					qui su `weight'  
+					loc tot=r(sum)
+					qui su `weight' if `varctg'==`l'
+					 
+					loc value=`r(sum)'/`tot'*100
+					local variable="`varctg'"
+					local case="categorical"
+					local source="`source'"
+					local vermast="`vermast_p'"
+					local module="`mmm'"
+					local veralt="`veralt_p'"
+					if ("`lab'"=="1") {
+						local valuelabel="`: label `lbe' `l''"
+						}
+						else {
+							local valuelabel="`l'"
+							}
+						qui post `cat' ("`source'") ("`acronym'") ("`year'") ("`veralt'") ("`survey'") ("`vermast'") ("`type'") ("`module'") ("`case'") ("`variable'") ("`valuelabel'") (`value')
+					
+				}
 		}
-		else {
-			local la: value label `varctg'
-			if ("`la'" != "") labelrename `la' `varctg' 
-		}
-
-		********************************************************************************
-
-
-		// calculation of shares and extraction of labels in matrices
-		local ++vc
-		tab `varctg' [aw = `weight'], matcell(`F') matrow(`V')
-		mata: A = st_matrix("`F'")
-		mata: st_matrix("`F'", (A:/colsum(A))*100)
-  
-		local nr = rowsof(`F')
-		mat `Y' = J(`nr', 1, `year')
-		mat `B' = J(`nr', 1, `vc')
-		
-		mat `A' = `Y', `V', `F', `B'	 // matrix with year, categories value, proportion shares and var test
-		mat `P' = nullmat(`P')\ `A'
-			
+	glo saveresultscat=1
+	}
 	
-		*} // condition, variable is in the database list
-		} // end loop categorical variable
-		mat colnames `P' = year valuelab freq varname
+	}
+				}				// end of categorical var loop
+				}
+				
+												}
+											}
+										}
+												}                     //end of data loop	
+				}   			//  End of module loop			
+			}            //  End of Years loop		
+		}                // end of countrylist loop	
 
-		drop _all
-		svmat `P', n(col)
+	}                         // end of Source =2	
+	
+	if (`source'==1)	{				
+		
+		*local countries "`countries'"  
+		local module "${module}"   
+		local years "${years}"    
 		
 		
-		tostring varname valuelab, replace force
-		label var freq "Participation share (%)"
-		
-		local vc = 0
-		foreach varctg of local varctgs {
-			local ++vc
-			replace varname = "`varctg'" if varname == "`vc'"
+		foreach country in `countries' {
 			
-			levelsof valuelab if varname == "`varctg'", local(values)
+			qui datalibweb_inventory, code(`country')
+			local region       = r(region)
+			local countryname  = r(countryname)
+
+			* Set years
+			foreach year of local years { 
+			*qui di "`country' - `year'"
+			* Open data 
+
+				* Set module 
+				foreach mmm in "${module}" {
+					noi dis in yellow "`country' - `year' - `mmm' - source(`source')"
+					qui cap dlw, country(`country') year(`year') `vermast' `veralt' `gtype'  ${survey}  /*`gmodule'*/ module("`mmm'") clear   `fileserver'
+
+					if _rc {  // if _rc
+						disp in red "No data for `country'-`year' "
+						continue 
+					}  // close if _rc
 			
-			* asign value labels
-			foreach value of local values {
-				replace valuelab = "`: label `varctg' `value''" ///
-					if  valuelab == "`value'"					///
-					& varname == "`varctg'"
+					if (_rc==0)  {
+						cap confirm variable countrycode
+					if (_rc!=0)  {
+						*local gmodule "module(UDB-C)"   
+						qui cap dlw, country(`country') year(`year') `vermast' `veralt' `gtype'  ${survey}  /*`gmodule'*/ module("`mmm'") clear   `fileserver'
+					}
+
+			//weight
+			cap confirm var weight
+				if _rc!=0 {
+					cap confirm var weight_p
+					if _rc==0 {
+					clonevar weight=weight_p 
+					}
+					}
+					
+			* create welfare
+			foreach m in "`module'" {
+			if "`m'"=="3"	{
+				capture confirm variable welfare
+				if !_rc {
+				   qui di in red "welfare exists"
+				}
+				else {
+					clonevar welfare=gallT 
+				}
 			}
-		} 		//  end of categorical variables loop
+			}
+
+			* Set locals for data information
+			local veralt_p  = r(vera)
+			local vermast_p = r(verm)
+			local surveyid    = r(surveyid)
+			tokenize `surveyid', parse("_")
+			local survey ="`5'"
+			local acronym   = "`country'"
+			local name 	  = "`countryname'" 
+			local type      = r(type)
+			local module    = "`r(module)'"
+			local year	  = `year'
 		
-		gen region="`region'"
-		gen countrycode="`country'"
-		gen countryname="`countryname'"
-		gen period = "`period_p'"
-		gen project = "`project_p'"
-		gen weight = "`weight'"
-		* save data
-		append using `ctgdta'
-		save `ctgdta', replace
-		glo saveresultscat=1
-	}
-	}
-	* end categorical
-	}
-	*bins categorical
-	}
-	// end datalib/datalibweb condition
+		//check if weight exists
+		cap confirm var `weight'
+		if _rc!=0 {
+			noi di as txt "`country' - `year' - `mmm' - source(`source'): variable "`weight'" not found"
+			exit
+			}
+		* weight defined
+		if ("`weight'" == "") {
+			local weight 1	
+			di as error "Results are unweighted"
+		}
+			*weighttype
+			cap confirm variable weighttype
+			if _rc==0 {
+				levelsof weighttype , local(weighttype)
+				local weighttype=strlower(weighttype)
+				cap tab countrycode [`weighttype'=`weight']
+				if _rc!=0 {
+		*local noteend`countryname'`year' "Variable -weighttype- not match with weight type for `countryname' `year' `veralt_p' `vermast_p'. Analitycal weight is assumed "
+		qui di in red "`noteend`country'`year''"
+					local weighttype "aw"
+				}
+			}
+			else {
+				*qui dis in red "Variable -weighttype- not found for `countryname' `year' `veralt_p' `vermast_p'. Analitycal weight is assumed "
+				gen weighttype="aw"
+				local weighttype "aw"
+				
+				*local noteend`countryname'`year' "Variable -weighttype- not found for `countryname' `year' `veralt_p' `vermast_p'. Analitycal weight is assumed "
+			}
+
+			* country information
+			qui {
+			dis as text "{hline}" 
+			dis as text "{p 4 4 2}{cmd:Country:} "   in y  "`country'    " as text " {p_end}"
+			dis as text "{p 4 4 2}{cmd:Year:} "      in y  "`year'   " as text " {p_end}"
+			dis as text "{p 4 4 2}{cmd:Module:} "    in y  "`module' " as text " {p_end}"
+			dis as text "{p 4 4 2}{cmd:Type:} "      in y  "`type'   " as text " {p_end}"
+			dis as text "{p 4 4 2}{cmd:Survey ID:} " in y  "`survey'" as text " {p_end}"
+			dis as text "{hline}" _newline
+			} // end of quise
+
+
+		*Analysis per variable 		
+		/*------------------------ basic Analysis----------------------------------*/
+
+			
+			*set trace on
+			*di 	"`weighttype' `weight'"
+
+			if (regexm("`cases'", `"^.*basic"')) &("`variables'"=="") {
+			
+			foreach var in `variables' {
+
+				cap confirm variable `var'	
+				
+				if _rc!=0 {										// var doesn't exist;
+				di in yellow "`var' does not exist"
+				exit
+				}
+			}
+			}
+			*qui di as text "is this working?"
+			*qui di as text "`country'-`year'-dynamic-basic"
+	if (regexm("`cases'", `"^.*basic"'))&("`variables'"!="") {
+			qui ds
+			loc varl `r(varlist)'
+
+	#delimit ;
+			basic_dyncheck `varl' [`weighttype'=`weight'],  source("`source'") veralt_p("`veralt_p'")	vermast_p("`vermast_p'")	project_p("`project_p'")	survey("`survey'")		year("`year'")	 module("`module'")		acronym("`country'")		name("`name'")		type("`type'")		nature("`nature'")		cname("`bc'") ;
+	#delimit cr
+	}	
+			
+
+			
+			*if regexm("`variables'","welfare") {
+		/*------------------------Poverty Analysis --------------------------*/
+				if (regexm("`cases'", `"^.*pov(e|er|ert|erty)"')) {
+					#delimit ;  
+					di as text "`country'-`year'-dynamic-poverty" ;   
+					#delimit cr	
+					poverty_dyncheck `variables' [`weighttype'=`weight'], source(`source') veralt_p(`veralt_p')	vermast_p(`vermast_p')	project_p(`project_p')	survey(`survey')		year(`year')		acronym(`acronym')		name(`countryname' )		type(`type')	 module("`mmm'")		nature(`nature')		cname(`pic') `all'
+				}
+		/*------------------------inequality Analysis -----------------------*/
+				if (regexm("`cases'", `"^.*ineq(u|ua|ual|uali|ualit|uality)"')) {
+					#delimit ;  
+					di as text "`country'-`year'-`mmm'-dynamic-inequality" ;   
+					#delimit cr	
+					ineq_dyncheck `variables' [`weighttype'=`weight'], source(`source')  veralt_p(`veralt_p')	vermast_p(`vermast_p')	project_p(`project_p')	survey(`survey')		year(`year')		acronym(`acronym')		name(`countryname' )		type(`type')	 module("`mmm'")		nature(`nature')		cname(`pic') `all'
+				
+				}		
 	
-	} //  End of Years loop
+			if (regexm("`cases'", `"^.*categorical"')) {
 
-} // end of countrylist loop
+		/*------------------------ procedure for categorical variables if any -------------------------*/
+/*
+		foreach var in `variables' {
+
+				cap confirm variable `var'	
+				
+									// var doesn't exist;
+				di in yellow "`var' does not exist"
+				qui gen `var'=.
+				}
+			}
+*/
+		* gather categorical variables
+				foreach varctg of local varctgs {
+
+					cap confirm variable `varctg'
+				
+
+		if _rc==0  {
+			qui su `varctg'
+			if r(N)>0 {
+				loc _check: val l `varctg'
+					if `"`_check'"' == "" {
+						di as error `"Variable `varctg' does not have val labels assigned"'
+						local lab =0
+						}
+					if `"`_check'"' != "" {
+						local lab =1
+						}
+				levelsof `varctg', local(levels)
+				local lbe : value label `varctg'
+	
+			qui {
+				foreach l of local levels {
+					qui su `weight'  
+					loc tot=r(sum)
+					qui su `weight' if `varctg'==`l'
+					 
+					loc value=`r(sum)'/`tot'*100
+					local variable="`varctg'"
+					local case="categorical"
+					local source="`source'"
+					local vermast="`vermast_p'"
+					local module="`mmm'"
+					local veralt="`veralt_p'"
+					if ("`lab'"=="1") {
+						local valuelabel="`: label `lbe' `l''"
+						}
+						else {
+							local valuelabel="`l'"
+							}
+						qui post `cat' ("`source'") ("`acronym'") ("`year'") ("`veralt'") ("`survey'") ("`vermast'") ("`type'") ("`module'") ("`case'") ("`variable'") ("`valuelabel'") (`value')
+					
+				}
+		}
+	
+	glo saveresultscat=1
+	}
+	
+	}
+				}				// end of categorical var loop
+				
+
+			
+				} 
+				} // end datalibweb condition
+				} //  End of Module loop
+				} //  End of Years loop
+			} // end of countrylist loop  
+
+		} // end of Source =1
 
 
+
+
+}                                // end of Sources loop
 
 
 /*=================
  2.2 Export info
  =================*/
- 
 * basic results
 if (regexm("`cases'", `"^.*basic"')) & (${saveresultsbas}==1) {
 	drop _all
 	postclose `bc'
-	use basiccheck, clear
+	use "`basiccheck'", clear
 	compress
 	* dta
-	save "`path'/basic`outfile'", `replace'
-	* excel
-	export excel using "`path'/dyn_`outfile'.xlsx", sheet("Basic") sheetreplace first(variable)
-	noi di as txt "Click" as smcl `"{browse "`path'/dyn_`outfile'.xlsx": here }"' `"to open results in excel for dynamic analysis, basic case. Saved in: "`path'/dyn_`outfile'.xlsx" "'
+	*save "`path'/basic`outfile'", `replace'
+	if ("${format}"=="") {
+		qui export excel "${salt_pathfile}/${salt_outfile}_long.xlsx", sheetreplace firstrow(variables) sheet("Basic_long")
+
+	}
+	if ("${format}"=="excel") {
+
+		keep  vermast veralt value year variable   survey acronym type module case source
+		qui reshape wide vermast veralt value, i(year variable   survey acronym type module case) j(source) string
+		foreach v in veralt1 vermast1 veralt2 vermast2 value1 value2 {
+				cap confirm variable `v'
+				if _rc!=0 {
+					qui g `v'=.
+					}
+					}	
+		
+		qui replace case=subinstr(case,"% ","",.)
+		qui replace case=subinstr(case,". ","",.)
+		qui gen version=case
+		
+
+		*qui replace version=case+"_Percent_"+source if inlist(case,"Missing","Zero")
+		qui replace version=case+"_Percent" if inlist(case,"Missing","Zero")
+		*qui keep year variable  vermast veralt  survey acronym type module version value
+		qui keep year variable   survey acronym type module veralt1 vermast1 veralt2 vermast2 value1 value2  version
+		*bys year variable survey acronym type module veralt1 vermast1 veralt2 vermast2: gen id=_n
+
+		qui reshape wide value*, i(year variable survey acronym type module veralt1 vermast1 veralt2 vermast2) j(version) string	
+		
+		//create id for figure
+		loc outvar acronym year type module survey vermast1 veralt1 vermast2 veralt2 variable value1Mean value1SD value1Missing_Percent value1Zero_Percent value1MillPop value2Mean value2SD value2Missing_Percent value2Zero_Percent value2MillPop
+		qui egen id= group(acronym year )	
+		qui egen concat=concat(acronym year variable)
+		qui egen concat2=concat(acronym id)
+
+		drop id
+		*qui gen time = "`c(current_date)' `c(current_time)'" 
+		qui keep `outvar' concat concat2
+		order concat `outvar' concat2
+		qui destring year, replace
+		tempfile bexp
+		save `bexp', replace
+		
+		//clear existing data in excel file
+		qui import excel "${salt_pathfile}/${salt_outfile}.xlsx", sheet("Basic") firstrow clear
+
+		qui ds 
+		set trace off
+		loc vars=r(varlist)
+
+		foreach v of loc vars {
+		cap confirm numeric var `v'
+			if _rc==0 {
+				qui replace `v'=.
+			}
+			if _rc!=0 {
+				qui replace `v'=""
+			}
+			}
+
+		export excel  using "${salt_pathfile}/${salt_outfile}.xlsx", sheet("Basic") cell(A3) sheetmodify
+		
+		//export final version
+		qui u `bexp', clear
+		qui format value1Mean value1SD value1Missing_Percent value1Zero_Percent value1MillPop value2Mean value2SD value2Missing_Percent value2Zero_Percent value2MillPop %30.2f
+		export excel  using "${salt_pathfile}/${salt_outfile}.xlsx", sheet("Basic") cell(A3) sheetmodify
+		
+		//Log
+			qui keep acronym	year	type	module
+			qui duplicates drop
+			qui gen no=.
+			qui gen analysis="Basic"
+			qui gen time = "`c(current_date)' `c(current_time)'"
+					tempfile log
+					qui save `log', replace
+					qui import excel "${salt_pathfile}/${salt_outfile}.xlsx", sheet("Log") firstrow clear
+					tempfile logori
+					qui save `logori', replace
+					qui u `log', clear
+					qui append using `logori', force
+			keep acronym	year	type	module	no	analysis	time	Note	
+			qui export excel "${salt_pathfile}/${salt_outfile}.xlsx", sheetreplace firstrow(variables) sheet("Log")		
+	}
+	if ("${format}"=="all") {
+		qui export excel "${salt_pathfile}/${salt_outfile}_long.xlsx", sheetreplace firstrow(variables) sheet("Basic_long")	
+		keep  vermast veralt value year variable   survey acronym type module case source
+		qui reshape wide vermast veralt value, i(year variable   survey acronym type module case) j(source) string
+		foreach v in veralt1 vermast1 veralt2 vermast2 value1 value2 {
+				cap confirm variable `v'
+				if _rc!=0 {
+					qui g `v'=.
+					}
+					}	
+		
+		qui replace case=subinstr(case,"% ","",.)
+		qui replace case=subinstr(case,". ","",.)
+		qui gen version=case
+		
+
+		*qui replace version=case+"_Percent_"+source if inlist(case,"Missing","Zero")
+		qui replace version=case+"_Percent" if inlist(case,"Missing","Zero")
+		*qui keep year variable  vermast veralt  survey acronym type module version value
+		qui keep year variable   survey acronym type module veralt1 vermast1 veralt2 vermast2 value1 value2  version
+		*bys year variable survey acronym type module veralt1 vermast1 veralt2 vermast2: gen id=_n
+
+		qui reshape wide value*, i(year variable survey acronym type module veralt1 vermast1 veralt2 vermast2) j(version) string	
+		
+		//create id for figure
+		loc outvar acronym year type module survey vermast1 veralt1 vermast2 veralt2 variable value1Mean value1SD value1Missing_Percent value1Zero_Percent value1MillPop value2Mean value2SD value2Missing_Percent value2Zero_Percent value2MillPop
+		qui egen id= group(acronym year )	
+		qui egen concat=concat(acronym year variable)
+		qui egen concat2=concat(acronym id)
+
+		drop id
+		*qui gen time = "`c(current_date)' `c(current_time)'" 
+		qui keep `outvar' concat concat2
+		order concat `outvar' concat2
+		qui destring year, replace
+		tempfile bexp
+		save `bexp', replace
+		
+		//clear existing data in excel file
+		qui import excel "${salt_pathfile}/${salt_outfile}.xlsx", sheet("Basic") firstrow clear
+
+		qui ds 
+		set trace off
+		loc vars=r(varlist)
+
+		foreach v of loc vars {
+		cap confirm numeric var `v'
+			if _rc==0 {
+				qui replace `v'=.
+			}
+			if _rc!=0 {
+				qui replace `v'=""
+			}
+			}
+
+		export excel  using "${salt_pathfile}/${salt_outfile}.xlsx", sheet("Basic") cell(A3) sheetmodify
+		
+		//export final version
+		qui u `bexp', clear
+		qui format value1Mean value1SD value1Missing_Percent value1Zero_Percent value1MillPop value2Mean value2SD value2Missing_Percent value2Zero_Percent value2MillPop %30.2f
+		export excel  using "${salt_pathfile}/${salt_outfile}.xlsx", sheet("Basic") cell(A3) sheetmodify
+		
+		//Log
+		
+			qui keep acronym	year	type	module
+			qui duplicates drop
+			qui gen no=.
+			qui gen analysis="Basic"
+			qui gen time = "`c(current_date)' `c(current_time)'"
+					tempfile log
+					qui save `log', replace
+					qui import excel "${salt_pathfile}/${salt_outfile}.xlsx", sheet("Log") firstrow clear
+					tempfile logori
+					qui save `logori', replace
+					qui u `log', clear
+					qui append using `logori', force
+			keep acronym	year	type	module	no	analysis	time	Note	
+			qui export excel "${salt_pathfile}/${salt_outfile}.xlsx", sheetreplace firstrow(variables) sheet("Log")		
+	}
+
+	if ("`cases'"=="basic categorical") {
+		noi di as txt "Basic analysis is done."
+	*qui di as txt "Click" as smcl `"{browse "${salt_pathfile}/${salt_outfile}.xlsx": here }"' `"to open results in excel for dynamic analysis, basic case. Saved in: "${salt_pathfile}/${salt_outfile}.xlsx" "'
+	}
+	if ("`cases'"=="basic") {
+	noi di as txt "Click" as smcl `"{browse "${salt_pathfile}/${salt_outfile}.xlsx": here }"' `"to open results in excel for dynamic analysis, basic case. Saved in: "${salt_pathfile}/${salt_outfile}.xlsx" "'
+	}
+	
 }
-
-
 * Categorical analysis
 if (regexm("`cases'", `"^.*categorical"')) & (${saveresultscat}==1) {
+
 *dta
-	use `ctgdta', clear
-	save "`path'/categ`outfile'", `replace'
+	*use `ctgdta', clear  
+	*save "`path'/categ`outfile'", `replace'  
 *excel
+	postclose `cat'
+	qui use "`catcheck'", clear
 
-	use `ctgdta', clear
-	if (weight != "1") export excel using "`path'/dyn_`outfile'.xlsx", sheet("Categ_w") sheetreplace first(variable) 
-	if (weight == "1") export excel using "`path'/dyn_`outfile'.xlsx", sheet("Categ_unw") sheetreplace first(variable) 	
-	noi di as txt "Click" as smcl `"{browse "`path'/dyn_`outfile'.xlsx": here }"' `"to open results in excel for dynamic analysis, categorical case. Saved in: "`path'/dyn_`outfile'.xlsx" "'
-}
+	qui destring year, replace
+	qui ren value percent
 
+	if ("${format}"=="") {
 
-* Poverty
+		qui export excel using "${salt_pathfile}/${salt_outfile}_long.xlsx", sheet("Categ_long") sheetreplace first(variable)
+	}
+	if ("${format}"=="excel") {
+		drop case
+		qui destring source, replace
+		qui su source
+		
+		if (r(max)!=r(min)) {
+				duplicates drop 
+				qui reshape wide veralt vermast  percent, i( acronym year survey type module variable valuelabel) j(source)  
+		}
+		if (r(max)==r(min)) {
+			*qui destring source, replace 
+			if (r(max)==1) {
+				ren ( veralt vermast  percent) ( vermast1	veralt1  percent1 )
+				}
+			
+			if (r(max)==2) {
+
+				ren ( veralt vermast  percent) ( vermast2	veralt2  percent2 )
+				}
+		*qui reshape wide veralt vermast  percent, i( acronym year survey type module variable valuelabel) j(  source) string
+		foreach v in veralt1 vermast1 veralt2 vermast2 percent1 percent2 {
+				cap confirm variable `v'
+				if _rc!=0 {
+					qui g `v'=.
+					}
+					}		
+		}
+		
+		
+		qui keep acronym year type survey  module veralt1 vermast1	veralt2 vermast2	  variable valuelabel percent1 percent2
+		qui order acronym year type survey  module veralt1 vermast1	veralt2 vermast2	  variable valuelabel percent1 percent2
+		*qui gen time = "`c(current_date)' `c(current_time)'"
+		
+		//create id for figure	
+
+		cap drop id
+		gen id=.
+		levelsof acronym, loc(c)
+		
+		levelsof year, loc(yr)
+		set trace off
+		tostring year, replace
+		
+		foreach f of loc c {
+			encode year if acronym=="`f'", gen(id`f')
+			replace id=id`f' if id==.
+			drop id`f'
+		}
+		destring year, replace
+		qui egen concat=concat(acronym year variable)
+		
+		cap drop id2
+		gen id2=.
+		levelsof concat, loc(conc)
+		*levelsof year, loc(yr)
+		tostring concat, replace
+		foreach f of loc conc {
+			encode valuelabel if conc=="`f'", gen(id`f')
+			replace id2=id`f' if id2==.
+			drop id`f'
+		}
+
+		qui egen concat2=concat(acronym id)
+		qui egen concat3=concat(acronym year variable id2)
+		drop id id2 
+		*qui gen time = "`c(current_date)' `c(current_time)'" 
+		qui keep acronym year type survey  module veralt1 vermast1	veralt2 vermast2	  variable valuelabel percent1 percent2 concat concat2 concat3
+		order concat acronym year type survey  module veralt1 vermast1	veralt2 vermast2	  variable valuelabel percent1 percent2 concat2 concat3
+
+		tempfile cexp
+		save `cexp', replace
+		
+		//clear existing data in excel file
+		qui import excel "${salt_pathfile}/${salt_outfile}.xlsx", sheet("Categ") firstrow clear
+
+		qui ds 
+		set trace off
+		loc vars=r(varlist)
+
+		foreach v of loc vars {
+		cap confirm numeric var `v'
+			if _rc==0 {
+				qui replace `v'=.
+			}
+			if _rc!=0 {
+				qui replace `v'=""
+			}
+			}
+
+		export excel  using "${salt_pathfile}/${salt_outfile}.xlsx", sheet("Categ") cell(A3) sheetmodify
+		
+		//export final version
+		qui u `cexp', clear
+		qui format percent1 percent2 %30.2f
+		qui export excel  using "${salt_pathfile}/${salt_outfile}.xlsx", sheet("Categ") cell(A3) sheetmodify
+			
+			//Log
+			
+			qui keep acronym	year	type	module
+			qui duplicates drop
+			qui gen no=.
+			qui gen analysis="Categorical"
+			qui gen time = "`c(current_date)' `c(current_time)'"
+					tempfile log
+					qui save `log', replace
+					qui import excel "${salt_pathfile}/${salt_outfile}.xlsx", sheet("Log") firstrow clear
+					tempfile logori
+					qui save `logori', replace
+					qui u `log', clear
+					qui append using `logori', force
+			*keep acronym	year	type	module	no	analysis	time	Note	
+			qui export excel "${salt_pathfile}/${salt_outfile}.xlsx", sheetreplace firstrow(variables) sheet("Log")			
+	}
+	if ("${format}"=="all") {
+
+		qui export excel using "${salt_pathfile}/${salt_outfile}_long.xlsx", sheet("Categ_long") sheetreplace first(variable)
+		
+		drop case
+		qui destring source, replace
+		qui su source
+		
+		if (r(max)!=r(min)) {
+				duplicates drop 
+				qui reshape wide veralt vermast  percent, i( acronym year survey type module variable valuelabel) j(source)  
+		}
+		if (r(max)==r(min)) {
+			*qui destring source, replace 
+			if (r(max)==1) {
+				ren ( veralt vermast  percent) ( vermast1	veralt1  percent1 )
+				}
+			
+			if (r(max)==2) {
+
+				ren ( veralt vermast  percent) ( vermast2	veralt2  percent2 )
+				}
+		*qui reshape wide veralt vermast  percent, i( acronym year survey type module variable valuelabel) j(  source) string
+		foreach v in veralt1 vermast1 veralt2 vermast2 percent1 percent2 {
+				cap confirm variable `v'
+				if _rc!=0 {
+					qui g `v'=.
+					}
+					}		
+		}
+		
+		
+		qui keep acronym year type survey  module veralt1 vermast1	veralt2 vermast2	  variable valuelabel percent1 percent2
+		qui order acronym year type survey  module veralt1 vermast1	veralt2 vermast2	  variable valuelabel percent1 percent2
+		*qui gen time = "`c(current_date)' `c(current_time)'"
+		
+		//create id for figure	
+
+		cap drop id
+		gen id=.
+		levelsof acronym, loc(c)
+		
+		levelsof year, loc(yr)
+		set trace off
+		tostring year, replace
+		
+		foreach f of loc c {
+			encode year if acronym=="`f'", gen(id`f')
+			replace id=id`f' if id==.
+			drop id`f'
+		}
+		destring year, replace
+		qui egen concat=concat(acronym year variable)
+		
+		cap drop id2
+		gen id2=.
+		levelsof concat, loc(conc)
+		*levelsof year, loc(yr)
+		tostring concat, replace
+		foreach f of loc conc {
+			encode valuelabel if conc=="`f'", gen(id`f')
+			replace id2=id`f' if id2==.
+			drop id`f'
+		}
+
+		qui egen concat2=concat(acronym id)
+		qui egen concat3=concat(acronym year variable id2)
+		drop id id2 
+		*qui gen time = "`c(current_date)' `c(current_time)'" 
+		qui keep acronym year type survey  module veralt1 vermast1	veralt2 vermast2	  variable valuelabel percent1 percent2 concat concat2 concat3
+		order concat acronym year type survey  module veralt1 vermast1	veralt2 vermast2	  variable valuelabel percent1 percent2 concat2 concat3
+
+		tempfile cexp
+		save `cexp', replace
+		
+		//clear existing data in excel file
+		qui import excel "${salt_pathfile}/${salt_outfile}.xlsx", sheet("Categ") firstrow clear
+
+		qui ds 
+		set trace off
+		loc vars=r(varlist)
+
+		foreach v of loc vars {
+		cap confirm numeric var `v'
+			if _rc==0 {
+				qui replace `v'=.
+			}
+			if _rc!=0 {
+				qui replace `v'=""
+			}
+			}
+
+		export excel  using "${salt_pathfile}/${salt_outfile}.xlsx", sheet("Categ") cell(A3) sheetmodify
+		
+		//export final version
+		qui u `cexp', clear
+		qui qui format percent1 percent2 %30.2f
+		qui export excel  using "${salt_pathfile}/${salt_outfile}.xlsx", sheet("Categ") cell(A3) sheetmodify
+
+			
+			//Log
+			
+			qui keep acronym	year	type	module
+			qui duplicates drop
+			qui gen no=.
+			qui gen analysis="Categorical"
+			qui gen time = "`c(current_date)' `c(current_time)'"
+					tempfile log
+					qui save `log', replace
+					qui import excel "${salt_pathfile}/${salt_outfile}.xlsx", sheet("Log") firstrow clear
+					tempfile logori
+					qui save `logori', replace
+					qui u `log', clear
+					qui append using `logori', force
+			*keep acronym	year	type	module	no	analysis	time	Note	
+
+			qui export excel "${salt_pathfile}/${salt_outfile}.xlsx", sheetreplace firstrow(variables) sheet("Log")			
+	}
+	
+	if ("`cases'"=="basic categorical") {
+		noi di as txt "Click" as smcl `"{browse "${salt_pathfile}/${salt_outfile}.xlsx": here }"' `"to open results in excel for dynamic analysis, basic & categorical case. Saved in: "${salt_pathfile}/${salt_outfile}.xlsx" "'
+	}
+	if ("`cases'"=="categorical") {
+		noi di as txt "Click" as smcl `"{browse "${salt_pathfile}/${salt_outfile}.xlsx": here }"' `"to open results in excel for dynamic analysis, categorical case. Saved in: "${salt_pathfile}/${salt_outfile}.xlsx" "'
+	}
+	}
+	}
+if (regexm("`cases'", `"^.*categorical"')) & (${saveresultscat}!=1) {
+		noi di as txt "Variables are not eligible for categorical analysis"
+	}
+	* Poverty
 if ((regexm("`cases'", `"^.*pov(e|er|ert|erty)"')) & (${saveresultspov}==1)) | ((regexm("`cases'", `"^.*ineq(u|ua|ual|uali|ualit|uality)"')) & (${saveresultsinq}==1)) {
 	drop _all
 	postclose `pic'
-	use povcheck, clear
+	use "`povcheck'", clear
 	compress
 	* dta
-	save "`path'/pov_inq_`outfile'", `replace'
+	*save "`path'/pov_inq_`outfile'", `replace' 
+
+	* excel
+	export excel using "${salt_pathfile}/${salt_outfile}.xlsx", sheet("Poverty_Inequality") sheetreplace first(variable)
+	noi di as txt "Click" as smcl `"{browse "${salt_pathfile}/${salt_outfile}.xlsx": here }"' `"to open results in excel for dynamic analysis, poverty and inequality case. Saved in: "${salt_pathfile}/${salt_outfile}.xlsx" "' 
+	
+	preserve 
+	* excel version for checking   
+	keep year case source vermast veralt  survey acronym type  analysis value 
+	reshape wide value, i(year source vermast veralt  survey acronym type  analysis) j(case ) string
+	rename value* *
+	order year source veralt vermast survey acronym  type 
+	*qui gen time = "`c(current_date)' `c(current_time)'"
+	export excel using "${salt_pathfile}/${salt_outfile}_wide.xlsx", sheet("Poverty_Inequality") sheetreplace first(variable)
+	noi di as txt "Click" as smcl `"{browse "${salt_pathfile}/${salt_outfile}_wide.xlsx": here }"' `"to open results in excel for dynamic analysis, poverty and inequality case in wide format. Saved in: "${salt_pathfile}/${salt_outfile}_wide.xlsx" "' 
+	restore	
+}
+/*
+* Inequality
+if (regexm("`cases'", `"^.*ineq(u|ua|ual|uali|ualit|uality)"')) & (${saveresultsinq}==1) {
+	drop _all
+	postclose `pic'
+	use inqcheck, clear
+	compress
+	* dta
+	*save "`path'/inq_`outfile'", `replace'
 	* excel
 	export excel using "`path'/dyn_`outfile'.xlsx", sheet("Poverty_Inequality") sheetreplace first(variable)
-	noi di as txt "Click" as smcl `"{browse "`path'/dyn_`outfile'.xlsx": here }"' `"to open results in excel for dynamic analysis, poverty and inequality case. Saved in: "`path'/dyn_`outfile'.xlsx" "' 
-}
+	noi di as txt "Click" as smcl `"{browse "`path'/dyn_`outfile'.xlsx": here }"' `"to open results in excel for dynamic analysis, inequality case. Saved in: "`path'/dyn_`outfile'.xlsx" "' 
+}	
+*/
 
-* 3 restore original base
-*if ("`outcome'" != "base")  restore //  Keep original data
-
-} // end of qui
-} // end of noi 
-end // end of _dyncheck program. 
-
-
-
-
-******************************************************************************************************************
-******************************************************************************************************************
-***************************************Basic Analysis Program*****************************************************
-qui {
-
-cap program drop basic_dyncheck
-program define basic_dyncheck, rclass
-
-syntax varlist									///
-		[if] [in]								///
-		[aweight fweight pweight], 				///
-			[ 									///
-			veralt_p(string)					///
-			vermast_p(string)					///
-			project_p(string)					///
-			period_p(string)					///
-			survey(string)						///
-			year(string)						///
-			acronym(string)						///
-			name(string)						///
-			type(string)						///
-			nature(string)						///
-			cname(string)						///
-			all 								///
-			nq(numlist)						///
-			]
-			
-* Weights treatment
-loc weight "[`weight' `exp']"
-
-foreach var of local varlist {
-
-	cap confirm numeric variable `var'
-	
-	if (_rc == 0) {
-		local description: variable label `var'
-		
-		* Missing analysis
-		tempvar aux
-		gen `aux' = missing(`var') 
-		sum `aux' `weight' if bins==`nq'
-		local missing = r(mean)
-		post `cname' ("`veralt_p'") ("`vermast_p'") ("`project_p'") ("`period_p'") ("`survey'") ("`year'") ("`acronym'") ("`name'") ("`type'") ("`nature'") ("`var'") ("`description'") ("Income") ("Basic") ("% Missing") (`missing') (`nq')
-		
-		* Look for zero values
-		tab `var' if `var' == 0 & bins==`nq'  `weight'
-		local zero = r(N)
-		count
-		local zero = (`zero'/r(N))
-		post `cname' ("`veralt_p'") ("`vermast_p'") ("`project_p'") ("`period_p'") ("`survey'") ("`year'") ("`acronym'") ("`name'") ("`type'") ("`nature'") ("`var'") ("`description'") ("Income") ("Basic")  ("% Zero") (`zero') (`nq')
-		
-		* Look for Mean values
-		local caution  = 1
-		sum `var' if bins==`nq' `weight', meanonly
-		local mean = r(mean)
-		post `cname' ("`veralt_p'") ("`vermast_p'") ("`project_p'") ("`period_p'") ("`survey'") ("`year'") ("`acronym'") ("`name'") ("`type'") ("`nature'") ("`var'") ("`description'") ("Income") ("Basic")  ("Mean") (`mean') (`nq')
-		
-		* Look for SD values
-		sum `var' if bins==`nq'  `weight'
-		local sd = r(sd)
-		post `cname' ("`veralt_p'") ("`vermast_p'") ("`project_p'") ("`period_p'") ("`survey'") ("`year'") ("`acronym'") ("`name'") ("`type'") ("`nature'") ("`var'") ("`description'") ("Income") ("Basic")  ("SD") (`sd') (`nq')
-		
-		if ("`var'" == "weight") {
-			sum `var' if bins==`nq' 
-			local sum = r(sum)/1000000
-			post `cname' ("`veralt_p'") ("`vermast_p'") ("`project_p'") ("`period_p'") ("`survey'") ("`year'") ("`acronym'") ("`name'") ("`type'") ("`nature'") ("`var'") ("`description'") ("Income") ("Basic")  ("Mill. Pop") (`sum') (`nq')
+	foreach country of local countries {
+		qui datalibweb_inventory, code(`country')
+		local countryname  = r(countryname)
+		foreach year of local years { 
+	  if "`noteend`country'`year''"!="" {
+      qui di in red "`noteend`country'`year''"
+		}
+	}
 		}
 
-	
-	} // end of if _rc == 0
-	else {
-		disp in red "`var' is not numeric..."
-	}
-} // end of varlist loop
-glo saveresultsbas=1
-end
-} // end of qui
-
-*************************************Poverty Analysis Program******************************************************
-
-qui {
-cap program drop poverty_dyncheck
-program define poverty_dyncheck, rclass
-
-syntax varlist									///
-		[if] [in]								///
-		[aweight fweight pweight], 				///
-			[ 									///
-			veralt_p(string)					///
-			vermast_p(string)					///
-			project_p(string)					///
-			period_p(string) 					///
-			survey(string)						///
-			year(string)						///
-			acronym(string)						///
-			name(string)						///
-			type(string)						///
-			nature(string)						///
-			cname(string)						///
-			all 								///
-			nq(numlist)							///
-			]
-			
-* Weights treatment
-loc weight "[`weight' `exp']"
-
-foreach var of local varlist {
-
-
-		* Moderate Poverty
-		apoverty `var' `weight' , line(`=4.0*365/12')
-		noi di "		apoverty `var' `weight' , line(4.0) "
-	
-		post `cname' ("`veralt_p'") ("`vermast_p'") ("`project_p'") ("`period_p'") ///
-			("`survey'") ("`year'") ("`acronym'") ("`name'") ("`type'") ///
-			("`nature'") ("`var'") ("`description'") ("Income")  ("Poverty")  ("Mod Poverty") (`r(head_1)') (1)
-		 
-
-		* Extreme Poverty
-		apoverty `var' `weight' , line(`=2.5*365/12')
-		post `cname' ("`veralt_p'") ("`vermast_p'") ("`project_p'") ("`period_p'") ///
-			("`survey'") ("`year'") ("`acronym'") ("`name'") ("`type'") ///
-			("`nature'") ("`var'") ("`description'") ("Income")  ("Poverty")  ("Ext Poverty") (`r(head_1)') (1)
-			
-		* Extreme Poverty
-		apoverty `var' `weight' , line(`=1.25*365/12')
-		post `cname' ("`veralt_p'") ("`vermast_p'") ("`project_p'") ("`period_p'") ///
-			("`survey'") ("`year'") ("`acronym'") ("`name'") ("`type'") ///
-			("`nature'") ("`var'") ("`description'") ("Income")  ("Poverty")  ("Global Ext Poverty") (`r(head_1)') (1)
-		
-
-	else {
-		disp in red "`var' is not numeric..."
-	}
-} // end of varlist loop
-
-glo saveresultspov=1
 end
 
-}
 
-
-*************************************Inequality Analysis Program**************************************************
-qui {
-
-cap program drop ineq_dyncheck
-program define ineq_dyncheck, rclass
-
-syntax varlist									///
-		[if] [in]								///
-		[aweight fweight pweight], 				///
-			[ 									///
-			veralt_p(string)					///
-			vermast_p(string)					///
-			project_p(string)					///
-			period_p(string) 					///
-			survey(string)						///
-			year(string)						///
-			acronym(string)						///
-			name(string)						///
-			type(string)						///
-			nature(string)						///
-			cname(string)						///
-			all									///
-			nq(numlist)							///
-			]
-			
-* Weights treatment
-loc weight "[`weight' `exp']"
-
-
-qui {
-
-foreach var of local varlist {
-	cap confirm numeric variable `var'
-	if (_rc == 0) {
-		local description: variable label `var'
-		
-		* Inequality (including zeros)
-		sum `var', meanonly 
-		if (r(N) == 0 ) continue 			// skip if variable is only missing values
-		ainequal `var'   `weight', `all' 
-	
-		*Gini
-		post `cname' ("`veralt_p'") ("`vermast_p'") ("`project_p'") ("`period_p'") ///
-				("`survey'") ("`year'") ("`acronym'") ("`name'") ("`type'") ///
-				("`nature'") ("`var'") ("`description'") ("Income") ("Inequality")  ("Gini") (`r(gini_1)') (1)
-		
-		*Theil
-		post `cname' ("`veralt_p'") ("`vermast_p'") ("`project_p'") ("`period_p'") ///
-				("`survey'") ("`year'") ("`acronym'") ("`name'") ("`type'") ///
-				("`nature'") ("`var'") ("`description'") ("Income") ("Inequality")  ("Theil") (`r(theil_1)') (1)
-	
-		
-		if ("`all'" == "all") {
-		
-			*Mean Log devitaion
-			post `cname' ("`veralt_p'") ("`vermast_p'") ("`project_p'") ("`period_p'") ///
-					("`survey'") ("`year'") ("`acronym'") ("`name'") ("`type'") ///
-					("`nature'") ("`var'") ("`description'") ("Income") ("Inequality")  ("Mean Log deviation") (`r(mld_1)') (1)
-
-			*General entropy alpha == 1
-			post `cname' ("`veralt_p'") ("`vermast_p'") ("`project_p'") ("`period_p'") ///
-					("`survey'") ("`year'") ("`acronym'") ("`name'") ("`type'") ///
-					("`nature'") ("`var'") ("`description'") ("Income") ("Inequality")  ("GE 1") (`r(ge_1_1)') (1)
-					
-			* General entropy alpha == 2
-			post `cname' ("`veralt_p'") ("`vermast_p'") ("`project_p'") ("`period_p'") ///
-					("`survey'") ("`year'") ("`acronym'") ("`name'") ("`type'") ///
-					("`nature'") ("`var'") ("`description'") ("Income") ("Inequality")  ("GE 2") (`r(ge2_1)') (1)
-				
-			* Atkinson 
-			post `cname' ("`veralt_p'") ("`vermast_p'") ("`project_p'") ("`period_p'") ///
-					("`survey'") ("`year'") ("`acronym'") ("`name'") ("`type'") ///
-					("`nature'") ("`var'") ("`description'") ("Income") ("Inequality") ("Atkinson") (`r(atkin1_1)') (1)
-					
-			*Kakwani
-			post `cname' ("`veralt_p'") ("`vermast_p'") ("`project_p'") ("`period_p'") ///
-						("`survey'") ("`year'") ("`acronym'") ("`name'") ("`type'") ///
-						("`nature'") ("`var'") ("`description'") ("Income") ("Inequality")  ("kakwani") (`r(kakwani_1)') (1)
-		
-		} //  end of if ("`all'" == "all")
-	
-	} // end of if _rc == 0
-	else {
-		disp in red "`var' is not numeric..."
-	}
-} // end of varlist loop
-} //  end of qui 
-
-glo saveresultsinq=1
-end
-
-}
-
-
-*************************************Distribution Analysis Program**************************************************
-qui {
-
-cap program drop dist_dyncheck
-program define dist_dyncheck, rclass
-
-syntax varlist									///
-		[if] [in]								///
-		[aweight fweight pweight], 				///
-			[ 									///
-			veralt_p(string)					///
-			vermast_p(string)					///
-			project_p(string)					///
-			period_p(string)
-			survey(string)						///
-			year(string)						///
-			acronym(string)						///
-			name(string)						///
-			type(string)						///
-			nature(string)						///
-			cname(string)						///
-			all 								///
-			nq(numlist)							///
-			]
-
-* Weights treatment
-loc weight "[`weight' `exp']"
-
-qui {
-foreach var of local varlist {
-	cap confirm numeric variable `var'
-	if (_rc == 0) {
-		local description: variable label `var'
-		
-		* Look for percentiles
-		local numlist 1 5 10 25 50 75 90 95 99
-		sum `var'  `weight', d
-		foreach num of numlist `numlist' {
-			di `num'
-			local p = r(p`num')
-			post `cname' ("`veralt_p'") ("`vermast_p'") ("`project_p'") ("`period_p'") ("`survey'") ("`year'") ("`acronym'") ("`name'") ("`type'") ("`nature'") ("`var'") ("`description'") ("Income") ("Distribution") ("`num'") (`p') (`nq')
-        }
-	} // end of if _rc == 0
-	else {
-		disp in red "`var' is not numeric..."
-	}
-} // end of varlist loop
-} //  end of qui 
-
-end
-
-}
-
-exit
-
-******************************************************************************************************************
-
-
-destring year, replace force
-
-two connected value year  if  variable == "asiste", 							///
-	xlabel(2000(3)2012, labsize(small)) ytitle("") xtitle("")					///
-	subtitle(, bcolor(white)) 													///
-	by(case, rescale title("asiste", bcolor(white)) note("")) 					
-	graph export "Z:\wb384996\Andres\temporal\tex\asiste.`ext'", as(`ext') replace
-
-
-
-* 0.4 Path consistency
-if ("`path'" != "" ) { // check if  the directory exists 
-	cap local aa: dir "./`path'" dirs "*"			// check on current directory whether the folder exists
-	if (_rc == 0 ) local path = "`c(pwd)'/`path'"	// create local if so
-	else cap local aa: dir "`path'" dirs "*" 		// check whether the folder exists
-	if (_rc) {
-		disp in red _new "`path' does not exist or the directory permissions do not allow you to create a new file"
-		error
-	}
-}
-else local path "`c(pwd)'"
-
-
-
-
-
-
-#delimit ; 
