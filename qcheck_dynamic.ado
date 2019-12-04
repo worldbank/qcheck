@@ -42,14 +42,6 @@ syntax [anything]								///
 /*-----------------------------------------------------
 		0. Check for errors and defaults
 -----------------------------------------------------*/
-noi { 
-	if ("`source'"=="current") {
-	tempfile database2qcheck
-	save `database2qcheck', replace
-    
-	}
-
-
 qui {
 
 
