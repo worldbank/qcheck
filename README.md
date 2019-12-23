@@ -96,9 +96,11 @@ qcheck static, countries(ZAF) year(2014) path(<<where to save the results here>>
  
 #### B. Out of datalibweb
 use "mydata.dta", clear
+
 qcheck , countries(SSS) year(2014) path(<<where to save the results here>>) test(gmd) var(male)  replace out(THIS_IS_A_TEST)  type(gmd) source(current)
  
 datalibweb, country(ZAF) year(2014)  type(gmd)  clear
+
 qcheck , countries(ZAF) year(2014) path(<<where to save the results here>>) test(gmd) var(male)  replace out(THIS_IS_A_TEST)  type(gmd) source(current) 
 
 
