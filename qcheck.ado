@@ -54,14 +54,6 @@ save `database2qcheck', replace;
 
 };
 
-if ("`source'"=="review") {;
-*##3. Jayne, here I call the ado from your code. it is possible to complement as needed with aditional options.
-qcheck_opendata, country(`countries') year(`years') `modules' ;
-tempfile database2qcheck;
-save `database2qcheck', replace;
-
-};
-
 
 *---------------------------------;
 *		Update Static Analysis  test         ;

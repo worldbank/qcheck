@@ -103,6 +103,12 @@ foreach country of local countries {
 				
 			}
 			
+			
+			if ("`source'"=="review") {;
+			*##4. Jayne, here I call the ado from your code. it is possible to complement as needed with additional options;
+			qcheck_opendata, country(`countries') year(`years') `modules' 
+			}
+			
 			if ("`source'"=="datalibweb") {
 				if ("`periodo'"!="") local theperiod "period(`periodo')"
 				if ("`type'"=="type(sedlac)") local mod "mod(all)"

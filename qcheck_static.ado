@@ -132,6 +132,10 @@ qui {;	// open qui overall code;
 			use `database2qcheck', clear;
 			};
 			
+			if ("`source'"=="review") {;
+			*##4. Jayne, here I call the ado from your code. it is possible to complement as needed with additional options;
+			qcheck_opendata, country(`countries') year(`years') `modules' ;
+			};
 	
 			if ("`source'"=="datalibweb") {;
 				if ("`periodo'"!="") local theperiod "period(`periodo')";
@@ -207,6 +211,23 @@ qui {;	// open qui overall code;
 				global salt_countryname = .;
 				global salt_test 	= "`country'" ;
 				global salt_type 	= .;
+				global salt_nature 	= .;
+				global salt_year	="`year'";
+				global salt_period = .;
+				global salt_project = .;
+				des;
+				global salt_total = . ;
+			};
+			
+				if ("`source'"=="review") {;	
+				global salt_veralt_p = `veralt_p';
+				global salt_vermast_p = `vermast_p';
+				global salt_survey 	= `survey';
+				global salt_acronym = "`country'";
+				global salt_name= .;
+				global salt_countryname = .;
+				global salt_test 	= "`test'" ;
+				global salt_type 	= "`type'";
 				global salt_nature 	= .;
 				global salt_year	="`year'";
 				global salt_period = .;

@@ -14,7 +14,7 @@
 discard;
 cap program drop qcheck_opendata
 program define qcheck_opendata, rclass
-*##1. Jayne, here I think you need more options. you need the path? or only the coutry/year/module is needed?
+*##1. Jayne, here I think you need more options. do you need the path? or only the coutry/year/module is needed?
 syntax varlist									///
 		[if] [in]								///
 		[aweight fweight pweight], 			///
@@ -27,7 +27,7 @@ syntax varlist									///
 *---------------------------------------------;
 *		Check for errors and defaults         ;
 *---------------------------------------------;		
-*##2. Jayne, here I think you must add the minimun requierements in order to avoid that the program stop. Example, only one country and one year. I added an example of a code for verify that is only one country. You may need also to add that is only one year
+*##2. Jayne, here I think you must add the minimum requirements in order to avoid that the program stop. Example, only one country and one year. I added few examples of a code for verify that is only one country, one year. You may need also to add that is only one year
 local countries=upper("`countries'");
 if ( wordcount("`countries'") > 1 ) {;
 	disp in red "you must select only one database: add only one country";
@@ -52,7 +52,7 @@ if ( wordcount("`module'") ==0 | wordcount("`module'") > 1 ) {;
 };
 
 if "${openpath}"=="" {;
-*##4 Jayne, do you want to add a default or an option for the openpath;
+*##3 Jayne, do you want to add a default or an option for the openpath;
 glo openpath="";
 };
 
