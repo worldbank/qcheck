@@ -39,6 +39,8 @@ syntax [anything]								///
 				noppp							///
 				bins(numlist)					///
 				SOurce(string)					///
+				ALTSOurce(string)				///
+				EXCELoutput					///
 			];
 
 *---------------------------------;
@@ -53,7 +55,6 @@ tempfile database2qcheck;
 save `database2qcheck', replace;
 
 };
-
 
 *---------------------------------;
 *		Update Static Analysis  test         ;
@@ -300,7 +301,7 @@ local cyear=substr("`date'",1,5);
 		};
 		
 ************** 4 Default type;
-if ("`type'" == "") local type "type(sedlac)";
+if ("`type'" == "") local type "type(gmd)";
 *if ("`type'" == "type(lablac)") local period "period(all)";	
 				
 ************** 6 log file and  file test;
@@ -326,6 +327,31 @@ if (regexm("`cases'", `"^.*categorical"'))==1 & ("`varctgs'"=="") {; noi di in r
 if (regexm("`cases'", `"^.*pov(e|er|ert|erty)"'))==1 & ("`varwelf'"=="") {; noi di in red "Poverty case in dynamic analysis is not allowed with the selected variables"; };
 if (regexm("`cases'", `"^.*ineq(u|ua|ual|uali|ualit|uality)"'))==1 & ("`varwelf'"=="") {; noi di in red "Inequality case in dynamic analysis is not allowed with the selected variables"; };
 };
+
+**************** 8 sources;
+if ("`source'"=="`altsource'") {;
+	noi di "source and altsource are equal. Altsource dropped";
+	local altsource "";
+};
+
+if ("`altsource'"=="current") {;
+	noi di "altsource cannot be current, altsource and source were inverted";
+	local altsource "`source'";
+	local source "current";
+};
+
+if (!inlist("`source'", "datalibweb", "current", "review", "datalib")) {;
+	disp in red "you must select datalibweb, current or review in source";
+	error;
+}; 
+if (!inlist("`altsource'", "datalibweb", "current", "review", "datalib", "")) {;
+	disp in red "you should select datalibweb, current or review in altsource, or keep empty";
+	error;
+}; 
+if ("`altsource'"=="") local saltsources "`source'";
+if ("`altsource'"!="") local saltsources "`source' `altsource'";
+
+
 *--------------------------------;
 *		Additional inputs        ;
 *--------------------------------;
@@ -333,7 +359,12 @@ local datatime  : disp %tcDDmonCCYY_HH.MM clock("`c(current_date)'`c(current_tim
 local user      = c(username);
 local dirsep    = c(dirsep);
 local vintage:  disp %tdD-m-CY date("`c(current_date)'", "DMY");	
-	*End check for errors and defaults.;		
+	*End check for errors and defaults.;
+
+***********************************************loop by sources ********************;
+foreach source in `saltsources' {;
+
+	
 *---------------------------------;
 *		Dynamic Analysis          ;
 *---------------------------------;
@@ -341,7 +372,7 @@ local vintage:  disp %tdD-m-CY date("`c(current_date)'", "DMY");
 if (regexm("`anything'", `"^dy(n|na|nam|nami|namic)"')) {;
 	local myrc=0;
 	
-	cap findfile "dyn_${salt_outfile}.xlsx", path(`path');
+	cap findfile "dyn_${salt_outfile}_`source'.xlsx", path(`path');
 
 	if _rc==0 & "`replace'"!="replace" {;
 		noi di in text "	(!) The output file already exists. Use option replace or define a different name";
@@ -349,16 +380,16 @@ if (regexm("`anything'", `"^dy(n|na|nam|nami|namic)"')) {;
 	};
 	noi di "${qc_countries} ${years}";
 	if ("`source'"=="current") {; use `database2qcheck', clear; };
-	qcheck_dynamic , countries(${qc_countries}) years(${years}) variables(`varbasi')  `vermast' `veralt' `period' `project' `module' `type'  path(`path') outfile("${salt_outfile}") `logfile' `cases'  `weight' `replace' varc(`varctgs') varw(`varwelf') `noppp' bins(`bins') source(`source') ;
+	qcheck_dynamic , countries(${qc_countries}) years(${years}) variables(`varbasi')  `vermast' `veralt' `period' `project' `module' `type'  path(`path') outfile("${salt_outfile}_`source'") `logfile' `cases'  `weight' `replace' varc(`varctgs') varw(`varwelf') `noppp' bins(`bins') source(`source') ;
 };
-
+* end dynamic;
 *---------------------------------;
 *		Static Analysis           ;
 *---------------------------------;
 
 if (regexm("`anything'", `"^sta(t|ti|tic)"')) {;
 
-	cap findfile "${salt_outfile}.dta", path(`path');
+	cap findfile "${salt_outfile}_`source'.dta", path(`path');
 	if _rc==0 & "`replace'"!="replace" {;
 		noi di in text "	(!) The output file already exists. Use option replace or define a different name";
 		exit;
@@ -367,13 +398,20 @@ if (regexm("`anything'", `"^sta(t|ti|tic)"')) {;
 	noi di "${qc_countries} ${years}";
 	if ("`source'"=="current") {; use `database2qcheck', clear; };
 	
-	qcheck_static , countries(${qc_countries}) years(${years}) variables(`vari')  `vermast' `veralt' `period' `project' `module' `type'  `replace' path(`path')  `survey'  outfile(${salt_outfile}) `logfile' test(`test') `noppp' source(`source') ;
+	qcheck_static , countries(${qc_countries}) years(${years}) variables(`vari')  `vermast' `veralt' `period' `project' `module' `type'  `replace' path(`path')  `survey'  outfile(${salt_outfile}_`source') `logfile' test(`test') `noppp' source(`source') ;
 	
 };
-*;
+*end static;
+
 };
+* end loop sources;
 
+};
+* end else;
 
+*---------------------------------;
+*		Excel dashboard           ;
+*---------------------------------;
 
 #delimit cr	 	
 end
