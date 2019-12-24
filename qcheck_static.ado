@@ -100,7 +100,7 @@ qui {;	// open qui overall code;
 					sort num;
 				
 					foreach check of numlist 1/`n`var'' {;
-						local description`var'`check' = description[`check'] ;
+						local dddd`var'`check' = description[`check'] ;
 						local iff`var'`check' = iff[`check'] ;
 						local temporal`var'`check'=temporalvars[`check'];
 						local warning`var'`check'=warning[`check'];
@@ -139,6 +139,7 @@ qui {;	// open qui overall code;
 	
 			if ("`source'"=="datalibweb") {;
 				if ("`periodo'"!="") local theperiod "period(`periodo')";
+				if ("`type'"=="type(gmd)") local mod "mod(all)";
 				if ("`type'"=="type(sedlac)") local mod "mod(all)";
                 if ("`type'"=="type(sedlac-03)") local mod "mod(all)";
                 noi di "datalibweb, country(`country') year(`year') `theperiod' `type' `mod' clear";
@@ -269,7 +270,7 @@ qui {;	// open qui overall code;
 					
 					if (`addnote'==1) {;local messageend "(*)Incorrect test for `var' `messageend'"; };
 					
-					if ("`description`var'`check''"=="") {;
+					if ("`dddd`var'`check''"=="") {;
 					noi di as text "There are not test for `var'. Please, check your test file";
 					local messageend_no`var' "(*) There are not test for `var'. Please, check your test file.";
 					}; // end if
@@ -278,7 +279,7 @@ qui {;	// open qui overall code;
 
 					
 					noi log_statement `var', iff(`iff`var'`check'') ///
-						description("`description`var'`check''") 	///
+						description("`dddd`var'`check''") 	///
 						module("`module`var''")						///
 						warning("`warning`var'`check''")			///
 						frequency("`frequency`var'`check''");			
@@ -430,7 +431,7 @@ program define log_statement, rclass;
 				else {;
 				count if (`iff');
 				*if _rc!=0 {;
-				*	local messend_`var' "(*) Incorrect specification for `var' in this test: `description`var'`check''"; 
+				*	local messend_`var' "(*) Incorrect specification for `var' in this test: `dddd`var'`check''"; 
 				*};
 					qui count if (`iff');
 					if r(N)>0 {;
