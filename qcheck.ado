@@ -5,15 +5,18 @@
 *-------------------------------------------------------------------
 *Created for datalib/LAC:		15Jul2013	(Santiago Garriga & Andres Castaneda) 
 *Adapted for datalibweb:		8/1/2016	(Laura Moreno) 
+*Adapted for ECAPOV:			06Oct2017	(Jayne Jungsun Yoo)
 *Last Modifications: 7Oct2019   Sandra Segovia / Laura Moreno
-*Last Modifications: 20Dec2019   Sandra Segovia / Laura Moreno / Jayne Jungsun
+*Last Modifications: 20Dec2019   Sandra Segovia / Laura Moreno / Jayne Yoo
 *version:		01 
 *Dependencies: 	WORLD BANK - LCSPP
 *=====================================================================
 #delimit ;
+
 discard;
 cap program drop qcheck;
 program define qcheck, rclass;
+
 syntax [anything]								///
 		[if] [in], 								///
 			[ 									///
@@ -22,7 +25,7 @@ syntax [anything]								///
 			VARiables(string)					///
 				VERMast(passthru)				///
 				VERAlt(passthru)				///
-				module(passthru)				///
+				module(string)				///	*modified by JY 12/26/2019: passthru doesnt store multiple modules
 				project(passthru)				///
 				period(passthru)				///
 				type(passthru)					///	
@@ -40,12 +43,14 @@ syntax [anything]								///
 				bins(numlist)					///
 				SOurce(string)					///
 				ALTSOurce(string)				///
-				EXCELoutput					///
-			];
+				REView(string)					///
+				Format(string)					
+				];
 
 *---------------------------------;
 *	Save database open         ;
 *---------------------------------;
+
 if ("`source'"=="") {;
 	local source "datalibweb";
 };
@@ -82,7 +87,6 @@ if _rc ssc install ainequal;
 *---------------------------------------------;
 *		Check for errors and defaults - Path and Test file        ;
 *---------------------------------------------;
-
 		quietly findfile qcheck.ado;
 		global salt_adoeditpath=subinstr("`r(fn)'","/qcheck.ado","",.);
 
@@ -329,7 +333,7 @@ if (regexm("`cases'", `"^.*ineq(u|ua|ual|uali|ualit|uality)"'))==1 & ("`varwelf'
 };
 
 **************** 8 sources;
-if ("`source'"=="`altsource'") {;
+/*if ("`source'"=="`altsource'") {;
 	noi di "source and altsource are equal. Altsource dropped";
 	local altsource "";
 };
@@ -349,9 +353,50 @@ if (!inlist("`altsource'", "datalibweb", "current", "review", "datalib", "")) {;
 	error;
 }; 
 if ("`altsource'"=="") local saltsources "`source'";
-if ("`altsource'"!="") local saltsources "`source' `altsource'";
+if ("`altsource'"!="") local saltsources "`source' `altsource'"*/;
+*modified by JY 12/26/2019: i would like to know alternative source and this part seems to allow only one source instead of having multiple data sources. we can discuss it later, but i suggest to have numbers instead. ;
+if ("`source'"=="" ) {;
+	disp in red "you must indicate data source"; error;
+	};
+	else {;	
+		glo sources "`source'";
+		};	
+************** 8. Module to analyze ;    
+if ("`module'"=="") {;
+	disp in red "you must indicate module"; error;
+	};
+	else {;	
+		glo module =strupper("`module'"); 
+	};
 
-
+************** 10. Path to files for review ;    
+if ("`review'"=="" ) {;
+	disp in red "you must indicate path to files for review"; error;
+	};
+	else {;	
+		glo openpath "`review'";
+	};	
+		
+************** 11. Surveyid ;    
+	glo survey "`survey'";
+	
+************** 12. long vs wide;    
+if ("`format'"=="" ) {;
+	disp in red "you must indicate output format"; error;
+	};
+if ("`format'"=="all" ) {;
+	di as txt "Output will be saved in long and wide format"; 
+	glo format "`format'";
+	};
+if ("`format'"=="long" ) {;
+		di as txt "Output will be be saved in long format only";
+		glo format "`format'";
+		};		
+if ("`format'"=="wide" ) {;
+		di as txt "Output will be be saved in wide format only";
+		glo format "`format'";
+		};	
+		
 *--------------------------------;
 *		Additional inputs        ;
 *--------------------------------;
@@ -361,10 +406,6 @@ local dirsep    = c(dirsep);
 local vintage:  disp %tdD-m-CY date("`c(current_date)'", "DMY");	
 	*End check for errors and defaults.;
 
-***********************************************loop by sources ********************;
-foreach source in `saltsources' {;
-
-	
 *---------------------------------;
 *		Dynamic Analysis          ;
 *---------------------------------;
@@ -396,25 +437,17 @@ if (regexm("`anything'", `"^sta(t|ti|tic)"')) {;
 	};
 	
 	noi di "${qc_countries} ${years}";
-	if ("`source'"=="current") {; use `database2qcheck', clear; };
-	
-	qcheck_static , countries(${qc_countries}) years(${years}) variables(`vari')  `vermast' `veralt' `period' `project' `module' `type'  `replace' path(`path')  `survey'  outfile(${salt_outfile}_`source') `logfile' test(`test') `noppp' source(`source') ;
-	
+	dis in yellow "qcheck_static starts";	
+	qcheck_static , countries(${qc_countries}) years(${years}) variables(`vari')  source(${sources}) `vermast' `veralt' `type' module(${module}) `replace' ${survey}  path(`path') outfile("${salt_outfile}") `logfile' test(`test') `fileserver';
+	dis in yellow "end of qcheck_static";
 };
 *end static;
-
-};
-* end loop sources;
-
 };
 * end else;
 
 *---------------------------------;
 *		Excel dashboard           ;
 *---------------------------------;
-if "`exceloutput'"=="exceloutput" {;
-	qcheck_excelwide, countries(${qc_countries}) years(${years}) variables(`vari')  `vermast' `veralt' `period' `project' `module' `type'  `replace' path(`path')  `survey'  outfile(${salt_outfile})  test(`test') source(`source') altsource(`altsource') ;
-};
 
 #delimit cr	 	
 end
