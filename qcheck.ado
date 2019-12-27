@@ -412,6 +412,9 @@ if (regexm("`anything'", `"^sta(t|ti|tic)"')) {;
 *---------------------------------;
 *		Excel dashboard           ;
 *---------------------------------;
+if "`exceloutput'"=="exceloutput" {;
+	qcheck_excelwide, countries(${qc_countries}) years(${years}) variables(`vari')  `vermast' `veralt' `period' `project' `module' `type'  `replace' path(`path')  `survey'  outfile(${salt_outfile})  test(`test') source(`source') altsource(`altsource') ;
+};
 
 #delimit cr	 	
 end
