@@ -34,11 +34,13 @@ syntax [anything]								///
 				outfile(string)					///
 				CASEs(string)					///
 				Weight(string)					///
-				VARCtgs(string)					///
+				VARCtgs(string)				///
 				VARWelfare(string)				///
 				noppp							///
 				bins(numlist)					///
 				SOurce(string)					///
+				REView(string)					///
+				EXCELoutput(string)			///
 			]
 
 /*-----------------------------------------------------
@@ -48,15 +50,34 @@ noi {
 	if ("`source'"=="current") {
 	tempfile database2qcheck
 	save `database2qcheck', replace
-    
 	}
-
+	if ("`outfile'"=="") {
+	local outfile "${salt_outfile}"	
+	}
 
 qui {
 local gtype "`type'"
 local gsurvey "`survey'"
 local gperiod "`period'"
 local gproject "`project'"
+
+
+	************** long vs wide    
+	if ("`exceloutput'"=="" ) {
+		disp in red "you should indicate output format, default long"
+		local exceloutput="long"
+		}
+	if ("`exceloutput'"=="long" ) {
+			di as txt "Output will be saved in long format only"
+			}	
+	if ("`exceloutput'"=="none" ) {
+			di as txt "No excel output will be saved"
+			}
+	if !inlist("`exceloutput'", "none", "long") {
+		disp in red "you must select excel long, none"
+		error
+	}
+
 if ("`bins'"=="") local bins=1
 * programs
 cap which distinct 
@@ -106,7 +127,10 @@ foreach country of local countries {
 			
 			if ("`source'"=="review") {;
 			*##4. Jayne, here I call the ado from your code. it is possible to complement as needed with additional options;
-			qcheck_opendata, country(`countries') year(`years') `modules' 
+			cap qcheck_opendata, country("`country'") year(`year') type("`type'") module("`mod'") review(`review') 
+			if _rc!=0 {
+				noi di "please check open data inputs"
+			}
 			}
 			
 			if ("`source'"=="datalibweb") {
@@ -210,6 +234,7 @@ if (`bins'!=1) {
 
 foreach nq of numlist 1/`bins' {	
 	if (regexm("`cases'", `"^.*basic"')) & ("`variables'"!="") {
+	local gsaved
 	noi di as text "`country'-`year'-dynamic-basic"
 			basic_dyncheck `variables' [aw=`weight'],  veralt_p(`veralt_p')	vermast_p(`vermast_p')	project_p(`project_p') period_p(`period_p')	survey(`survey') year(`year') acronym(`country') name(`name') type(`type') nature(`nature') cname(`bc') nq(`nq')
 	}
@@ -370,8 +395,10 @@ if (regexm("`cases'", `"^.*basic"')) & (${saveresultsbas}==1) {
 	* dta
 	save "`path'/basic`outfile'", `replace'
 	* excel
+	if "`exceloutput'"=="long" {	
 	export excel using "`path'/dyn_`outfile'.xlsx", sheet("Basic") sheetreplace first(variable)
 	noi di as txt "Click" as smcl `"{browse "`path'/dyn_`outfile'.xlsx": here }"' `"to open results in excel for dynamic analysis, basic case. Saved in: "`path'/dyn_`outfile'.xlsx" "'
+	}
 }
 
 
@@ -381,11 +408,12 @@ if (regexm("`cases'", `"^.*categorical"')) & (${saveresultscat}==1) {
 	use `ctgdta', clear
 	save "`path'/categ`outfile'", `replace'
 *excel
-
+	if "`exceloutput'"=="long" {
 	use `ctgdta', clear
 	if (weight != "1") export excel using "`path'/dyn_`outfile'.xlsx", sheet("Categ_w") sheetreplace first(variable) 
 	if (weight == "1") export excel using "`path'/dyn_`outfile'.xlsx", sheet("Categ_unw") sheetreplace first(variable) 	
 	noi di as txt "Click" as smcl `"{browse "`path'/dyn_`outfile'.xlsx": here }"' `"to open results in excel for dynamic analysis, categorical case. Saved in: "`path'/dyn_`outfile'.xlsx" "'
+	}
 }
 
 
@@ -398,9 +426,12 @@ if ((regexm("`cases'", `"^.*pov(e|er|ert|erty)"')) & (${saveresultspov}==1)) | (
 	* dta
 	save "`path'/pov_inq_`outfile'", `replace'
 	* excel
+	if "`exceloutput'"=="long" {
 	export excel using "`path'/dyn_`outfile'.xlsx", sheet("Poverty_Inequality") sheetreplace first(variable)
-	noi di as txt "Click" as smcl `"{browse "`path'/dyn_`outfile'.xlsx": here }"' `"to open results in excel for dynamic analysis, poverty and inequality case. Saved in: "`path'/dyn_`outfile'.xlsx" "' 
+	noi di as txt "Click" as smcl `"{browse "`path'/dyn_`outfile'.xlsx": here }"' `"to open results in excel for dynamic analysis, poverty and inequality case. Saved in: "`path'/dyn_`outfile'.xlsx" "'
+		}
 }
+
 
 * 3 restore original base
 *if ("`outcome'" != "base")  restore //  Keep original data
