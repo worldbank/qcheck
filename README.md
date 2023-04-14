@@ -48,15 +48,16 @@ The first column contains the name of the variable to be checked. It may be the 
 The second column, “Warning,” allows the user to specify the level of urgency. The purpose of this column is merely cosmetic. It allows the user to organize or filter the results easier in the Tableau dashboard or their own analyses.  
 The third and fourth columns are the checking code, but each has a particular function. The fourth column (iff) contains the logical statements that check the consistency of the variable. For instance, if you wanted to test that the variable corresponding to the person’s age does not have negative values, positive values above 100, or missing values, you may type something like this: age < 0 | age > 100. As you see, the logical test flags those observations that meet the criterion as inconsistent.  
 The third column (temporalvars), is for code lines that must be executed before the logical statement in column “iff.” Sometimes, it is needed to create a temporal variable with certain characteristics in order to check some inconsistencies. For instance, you may need to test whether the combination of household and person id is unique along the dataset. In order to do so, you can do the following:
+
 cap destring pid, replace
 duplicates report hid pid
 local n = r(unique_value)
 count
-count if r(N) != `n' // logical statement
+count if r(N) != 'n' 
 
 The first four lines of the code above create a temporal macro that counts the number of observations in the dataset that have a unique value for the combination hid and pid. If the dataset was constructed correctly, the number in local n should be the same as the number of observations in the dataset. Therefore, the last line of code is the logical test that verifies the aforementioned statement.  Several things should be kept in mind. 
 •	Given that there is only one cell for each check in column “temporalvars”, each line of code must be separated from the subsequent line with a semicolon (;) instead of a break of line.
-•	In the example above, the logical statement that goes in the corresponding cell of column “iif” is r(N) != `n', rather than count if r(N) != `n'. Given that by design, all the consistency checks count the number of observations with problems, it is inefficient to ask the user to type “count if” for each cell. Instead, it is only necessary to type the logical statement of the code line. 
+•	In the example above, the logical statement that goes in the corresponding cell of column “iif” is r(N) != 'n', rather than count if r(N) != 'n'. Given that by design, all the consistency checks count the number of observations with problems, it is inefficient to ask the user to type “count if” for each cell. Instead, it is only necessary to type the logical statement of the code line. 
 See a small example below:
 
 <img src="./images/qcheck_summary.png">
@@ -67,7 +68,7 @@ The dynamic assessment of qcheck performs different analyses depending on the va
 
 ### Example
 
-<<Open your data>>
+* Open your data
 	qui des, varlist
 	local Allvars=r(varlist)
 		
@@ -75,19 +76,19 @@ The dynamic assessment of qcheck performs different analyses depending on the va
 	*## BASIC		
 	qcheck `Allvars' [aw=weight], out(`pathout') report(basic) 
 	**same results with: 
- qchecksum `Allvars' [aw=weight], out(`pathout')
+ 	qchecksum `Allvars' [aw=weight], out(`pathout')
 	
 	*-----------------------------------------------------------
 	*## CATEG	
 	qcheck `Allvars' [aw=weight], out(`pathout') report(categoric) 
 	**same results with: 
- qcheckcat `Allvars' [aw=weight], file("`filename'") out(`pathout')
+ 	qcheckcat `Allvars' [aw=weight], file("`filename'") out(`pathout')
 
 	*-----------------------------------------------------------
 	*## STATIC	
 	qcheck `Allvars' [aw=weight], file("`filename'") out(`pathout') report(static) input(${qcheckpath}\qcheck_NNN.xlsx) restore
 	**same results with: 
- qcheckstatuc `Allvars' [aw=weight], file("`filename'") out(`pathout') report(static) input(${qcheckpath}\qcheck_NNN.xlsx) restore
+ 	qcheckstatuc `Allvars' [aw=weight], file("`filename'") out(`pathout') report(static) input(${qcheckpath}\qcheck_NNN.xlsx) restore
 
 
 
