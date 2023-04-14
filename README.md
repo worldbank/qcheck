@@ -69,26 +69,40 @@ The dynamic assessment of qcheck performs different analyses depending on the va
 ### Example
 
 * Open your data
+
 	qui des, varlist
+	
 	local Allvars=r(varlist)
 		
 	*-----------------------------------------------------------
-	*## BASIC		
+	
+	*## BASIC
+	
 	qcheck `Allvars' [aw=weight], out(`pathout') report(basic) 
+	
 	**same results with: 
+	
  	qchecksum `Allvars' [aw=weight], out(`pathout')
 	
 	*-----------------------------------------------------------
-	*## CATEG	
+	
+	*## CATEG
+	
 	qcheck `Allvars' [aw=weight], out(`pathout') report(categoric) 
+	
 	**same results with: 
+	
  	qcheckcat `Allvars' [aw=weight], file("`filename'") out(`pathout')
 
 	*-----------------------------------------------------------
+	
 	*## STATIC	
+	
 	qcheck `Allvars' [aw=weight], file("`filename'") out(`pathout') report(static) input(${qcheckpath}\qcheck_NNN.xlsx) restore
+	
 	**same results with: 
- 	qcheckstatuc `Allvars' [aw=weight], file("`filename'") out(`pathout') report(static) input(${qcheckpath}\qcheck_NNN.xlsx) restore
+	
+ 	qcheckstatic `Allvars' [aw=weight], file("`filename'") out(`pathout') report(static) input(${qcheckpath}\qcheck_NNN.xlsx) restore
 
 
 
