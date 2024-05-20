@@ -37,6 +37,8 @@ if ("`out'"=="") local out `c(pwd)';
 ***************************************************************;
 *#F1# files will be saved in <out> with the name "basicqcheck_<file>";
 local outpathfile "`out'`c(dirsep)'staticqcheck_`file'";
+*noi di "save in `outpathfile'";
+
 ***************************************************************;
 * Weights treatment;
 loc weight "[`weight' `exp']";
@@ -60,13 +62,14 @@ loc weight "[`weight' `exp']";
 		noi di in text "sheet 'Test' in `input' not found. Revise the file and the format";
 		error 601;
 	};
+	rename description dd;
 	save "${salt_adoeditpath}\testqcheckstatic.dta", replace ;		
 	noi di in text "... revising all the columns/variables are in `input'";
 	confirm variable warning dd temporalvars iff frequency module , exact;	
 	clear;
 ************** A. Create file that save results.;
 	cap postutil clear;
-	postfile resultados str10 contador str30 variable str30 warning str10 frequency str10 percentage str244 dd str244 iff using "`outpathfile'", replace;
+	postfile resultados str10 contador str30 variable str30 warning  int frequency double percentage str244 dd str244 iff using "`outpathfile'", replace;
 	
 	************* B. Static Analysis;
 
@@ -81,7 +84,7 @@ loc weight "[`weight' `exp']";
 					
 					qui count;
 					local n`var' =r(N);
-					sort num;
+					cap sort num;
 				
 					foreach check of numlist 1/`n`var'' {;
 						local dd`var'`check' = dd[`check'] ;
@@ -98,7 +101,8 @@ loc weight "[`weight' `exp']";
 			global previous "previous";
 			
 	use `database2qcheck', clear;
-	global salt_total _N ;
+	count;
+	global salt_total `r(N)' ;
 	
 	************* C1. Save tests data in locals;
 	
@@ -107,7 +111,7 @@ loc weight "[`weight' `exp']";
 					local addnote=0;
 		
 						if ("`temporal`var'`check''"!="no") {;
-							local puntoycoma=strpos(`"`temporal`var'`check''"',";");  // encuentra el primer puntoycoma;
+							local puntoycoma=strpos(`"`temporal`var'`check''"',";");  
 								while (`puntoycoma'>0) {;
 									local linea = substr(`"`temporal`var'`check''"', 1, `puntoycoma'-1);
 									local temporal`var'`check' = substr(`"`temporal`var'`check''"', `puntoycoma'+1,.);
@@ -158,6 +162,8 @@ loc weight "[`weight' `exp']";
 		destring contador, replace;
 		duplicates tag dd variable warning , generate(code);
 		egen n=group(dd variable warning);
+		replace percentage=round(percentage*10000)/100;
+		replace frequency=${salt_total} if mi(frequency);
 		*Labels;
 		order contador variable warning frequency percentage dd;
 		keep contador variable warning frequency percentage dd iff;
@@ -211,9 +217,10 @@ program define log_statement, rclass;
 	*1.  Does the variable exist?;
 		cap confirm variable `anything';
 		if _rc!=0 {;											// var doesn't exist;
-			if regexm("`anything'", `"("${previous}")"') {;		// first check of this var, save post
-				local dd "Variable does not found. It should be missing";
-				local frequency "${salt_total}";
+		*NO;
+			if regexm("`anything'", `"("${previous}")"')  | strpos(`anything',"Missed") {;		// first check of this var, save post
+				local dd "Variable -`anything'- not found. If it cannot be defined, create it using special missing categories";
+				local frequency ${salt_total};
 				local warning "Missed";
 				local savepost "yes";
 			};
@@ -221,27 +228,34 @@ program define log_statement, rclass;
 				local savepost "no";		// do nothing;
 			};
 		};
-	*2. Is not the variable missing?;
-		else {;												// var exists but no information;
+		else {;
+		*YES;											// var exists but no information;
+	*2. Is the variable string?;
 		cap confirm string var `anything';
 		if !_rc {;
+		*YES;
 			tempvar saltblancos;  qui gen `saltblancos'="" ; 
 			if ("`anything'"==`saltblancos') {; local dd "All empty"; };
 		};
 		else {;
+		*NO;
 			qui sum `anything';
 			if r(N)==0  {;
-				local frequency "${salt_total}";
+				local frequency ${salt_total};
 				local warning "Missing";
 				local savepost "yes";
 
 				tempvar saltmissing saltzeros saltblancos; qui gen `saltmissing'=. ; qui gen `saltzeros'=0; qui gen `saltblancos'="" ;
-				if (`anything'==`saltmissing') {; local dd "All missing"; };
+				tempvar saltmissing_a saltmissing_b saltmissing_c; qui gen `saltmissing_a'=.a ; qui gen `saltmissing_b'=.b ; qui gen `saltmissing_c'=.c ;
+				if (`anything'==`saltmissing') {; local dd "All missing, unknown reason"; };
+				if (`anything'==`saltmissing_a') {; local dd "All missing .a, variable had not been harmonized"; };
+				if (`anything'==`saltmissing_b') {; local dd "All missing .b, variable cannot be harmonized, data does not meet harmonization definition"; };
+				if (`anything'==`saltmissing_c') {; local dd "All missing .c, variable not harmonized, data not available"; };
 				if (`anything'==`saltzeros') {; local dd "All zero" ; };
 				if ("`anything'"==`saltblancos') {; local dd "All empty"; };
 			};
 		};
-	*3.  Afther verify that the variable exists, and if does, that it's not missing, the revision begins ;
+	*3.  Afther verify that the variable exists, and it's not missing, the revision begins ;
 			else {;
 		* The condition look for number of obs with this inconsistency;
 				if strpos("`iff'", "`anything'")!=0 {;	// the condition include the var;
@@ -264,7 +278,7 @@ program define log_statement, rclass;
 					qui count if (`iff');
 					if r(N)>0 {;
 						if ("`frequency'"==""){;
-							local frequency "${salt_total}";
+							local frequency ${salt_total};
 							local savepost "yes";
 						};
 		* The condition holds or not holds whitin a group of observation. These checks use tempvars.;
@@ -290,12 +304,13 @@ program define log_statement, rclass;
 		* Updated counter;
 			global salt_doncontador=${salt_doncontador}+1;
 		* Save results;
-			post resultados  ("${salt_doncontador}") ("`anything'") ("`warning'") ("`frequency'") ("`percentage'") ("`dd'") ("`iff'");
+			post resultados  ("${salt_doncontador}") ("`anything'") ("`warning'") (`frequency') (`percentage') ("`dd'") ("`iff'");
 					* Create a brouse;
 		
 			noi di in white "{hline 20} " "#${salt_doncontador} - "  "`anything'" " {hline 20}>";
 			noi di in red "`warning':" in white "	`dd'`dd2'." _newline;
-			noi di in white ${salt_total} ": -> No of obs with this inconsistency:`frequency'. Equivalent to `percentage'" _newline;
+			noi di in white "-> " in red `frequency' in white "  observations with this inconsistency";
+			noi di in white "-> " in red "`=round(`percentage'*100000)/1000' %" in white "  of the ${salt_total} observations" _newline;
 			*noi di ${salt_total};
 
 	};  // end save ;

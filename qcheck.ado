@@ -19,7 +19,7 @@ program define qcheck, rclass
 syntax varlist								///
 		[if] [in]							///
 		[aweight fweight pweight]			///
-		[,	Report(string)  File(string) Out(string) INput(string) restore	]
+		[,	Report(string)  File(string) Out(string) INput(string) restore]
 
 		*input(): this is required when the option"static" is chosen. 
 		*Select file that has the test you want to perform. 

@@ -56,7 +56,7 @@ foreach file in `files' {
 
 	*-----------------------------------------------------------
 	*## STATIC	
-	*qcheck `Allvars' [aw=weight], file("`filename'") out(${qcheckout}) report(static) input(${qcheckpath}/qcheck_NNN.xlsx) restore
+	qcheck `Allvars' [aw=weight], file("`filename'") out(${qcheckout}) report(static) input(${qcheckpath}/qcheck_NNN.xlsx) restore
 	**same results with: qcheckstatuc `Allvars' [aw=weight], file("`filename'") out(${qcheckout}) report(static) input(${qcheckpath}\qcheck_NNN.xlsx) restore
 
 }
