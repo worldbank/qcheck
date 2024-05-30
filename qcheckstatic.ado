@@ -218,7 +218,7 @@ program define log_statement, rclass;
 		cap confirm variable `anything';
 		if _rc!=0 {;											// var doesn't exist;
 		*NO;
-			if regexm("`anything'", `"("${previous}")"')  | strpos(`anything',"Missed") {;		// first check of this var, save post
+			if regexm("`anything'", `"("${previous}")"')  | strpos(`anything',"Missed")  {;		// first check of this var, save post
 				local dd "Variable -`anything'- not found. If it cannot be defined, create it using special missing categories";
 				local frequency ${salt_total};
 				local warning "Missed";
@@ -246,11 +246,12 @@ program define log_statement, rclass;
 				local savepost "yes";
 
 				tempvar saltmissing saltzeros saltblancos; qui gen `saltmissing'=. ; qui gen `saltzeros'=0; qui gen `saltblancos'="" ;
-				tempvar saltmissing_a saltmissing_b saltmissing_c; qui gen `saltmissing_a'=.a ; qui gen `saltmissing_b'=.b ; qui gen `saltmissing_c'=.c ;
+				tempvar saltmissing_a saltmissing_b saltmissing_c saltmissing_z; qui gen `saltmissing_a'=.a ; qui gen `saltmissing_b'=.b ; qui gen `saltmissing_c'=.c ; qui gen `saltmissing_z'=.z ;
 				if (`anything'==`saltmissing') {; local dd "All missing, unknown reason"; };
 				if (`anything'==`saltmissing_a') {; local dd "All missing .a, variable had not been harmonized"; };
 				if (`anything'==`saltmissing_b') {; local dd "All missing .b, variable cannot be harmonized, data does not meet harmonization definition"; };
 				if (`anything'==`saltmissing_c') {; local dd "All missing .c, variable not harmonized, data not available"; };
+				if (`anything'==`saltmissing_z') {; local dd "Variable missed, not defined in the database"; };
 				if (`anything'==`saltzeros') {; local dd "All zero" ; };
 				if ("`anything'"==`saltblancos') {; local dd "All empty"; };
 			};
