@@ -142,17 +142,17 @@ local CAT school literacy educat4 educat5 educat7 primarycomp int_year int_month
     }
     *noi di "`varlistgmd'"
 
-    cap gen piped="Missed"
-    cap gen occup="Missed"
+    cap gen piped=.z
+    cap gen occup=.z
      
       foreach var of local varlistgmd {
             cap confirm var `var'
             if _rc {
-                gen `var'="Missed"
+                gen `var'=.z
                 local missedvars "`missedvars' `var'"
             }
          }
-    noi di as error "URGENT: You need to create the folowwing variables:"
+    noi di as error "URGENT: You need to create the following variables:"
     noi di as error "`missedvars'" _n
 
 /*
