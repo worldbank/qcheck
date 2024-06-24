@@ -121,7 +121,7 @@ if !inlist("`anything'", "IDN", "COR", "GEO", "DEM", "LBR") & !inlist("`anything
 * List of Categorical variables
 *******************************************************************************
 local CAT school literacy educat4 educat5 educat7 primarycomp int_year int_month ///
-          subnatid1 subnatid2 urban male relationharm relationcs marital ///
+          urban male relationharm relationcs marital ///
           eye_dsablty hear_dsablty walk_dsablty conc_dsord slfcre_dsablty comm_dsablty ///
           minlaborage lstatus nlfreason unempldur_l unempldur_u empstat ocusec ///
           industry_orig industrycat10 industrycat4 occup_orig unitwage ///
@@ -134,7 +134,7 @@ local CAT school literacy educat4 educat5 educat7 primarycomp int_year int_month
            lightsource elec_acc electricity landphone cellphone phone computer etablet ///
            internet radio tv tv_cable video fridge sewmach washmach stove ricecook fan ac ///
            ewpump bcycle mcycle oxcart boat car canoe roof wall floor kitchen bath rooms ///
-           ownhouse acqui_house dweltyp
+           ownhouse acqui_house dweltyp subnatid1 subnatid2
 
 
     foreach mod in IDN COR GEO DEM LBR UTL DWL CON GMD20 GMD15 CAT {
