@@ -44,12 +44,12 @@ if !inlist("`anything'", "IDN", "COR", "GEO", "DEM", "LBR") & !inlist("`anything
     
  loc GEO subnatid1 subnatid2 subnatid3 subnatid4 subnatidsurvey ///
         strata psu subnatid1_prev subnatid2_prev subnatid3_prev ///
-        subnatid4_prev gaul_adm1_code gaul_adm2_code urban childyr childmth
+        subnatid4_prev gaul_adm1_code gaul_adm2_code urban 
 
  
  loc DEM language age agecat male relationharm relationcs marital ///
   eye_dsablty hear_dsablty walk_dsablty conc_dsord slfcre_dsablty ///
-  comm_dsablty
+  comm_dsablty childyr childmth
  
  loc LBR minlaborage lstatus nlfreason unempldur_l unempldur_u empstat ///
  ocusec industry_orig industrycat10 industrycat4 occup_orig  ///
@@ -134,7 +134,7 @@ local CAT school literacy educat4 educat5 educat7 primarycomp int_year int_month
            lightsource elec_acc electricity landphone cellphone phone computer etablet ///
            internet radio tv tv_cable video fridge sewmach washmach stove ricecook fan ac ///
            ewpump bcycle mcycle oxcart boat car canoe roof wall floor kitchen bath rooms ///
-           ownhouse acqui_house dweltyp subnatid1 subnatid2
+           ownhouse acqui_house dweltyp 
 
 
     foreach mod in IDN COR GEO DEM LBR UTL DWL CON GMD20 GMD15 CAT {
