@@ -73,7 +73,7 @@ preserve
 					*di in red "String vars: `r(varlist)'"
 					unique  `varctg'
 					local num_categories=r(unique)
-					if `num_categories'<20 & "`varctg'"!="`weight'" {
+					if `num_categories'<50 & "`varctg'"!="`weight'" {
 					    
 					/*
 					cap confirm numeric variable `varctg'
@@ -148,7 +148,8 @@ preserve
                     mat `P' = nullmat(`P')\ `A'
                     *}
 					}
-					else if `num_categories'>=20 & "`varctg'"!="`weight'" {
+
+					else if `num_categories'>=50 & "`varctg'"!="`weight'" {
 					    drop `varctg'
 						gen `varctg'="this is a continous variable and is will not be analyzed by the qcheck categoric"
 					    di "this is a continous variable and is will not be analyzed by the qcheck categoric"
